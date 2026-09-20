@@ -1,0 +1,4 @@
+Face detection (YuNet) and recognition (SFace) ONNX weights are downloaded
+into this directory by ../download_models.py. They are intentionally not
+committed to the repository (see .gitignore) since they are large binary
+assets available from the OpenCV Zoo.

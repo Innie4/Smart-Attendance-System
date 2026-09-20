@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+env/
+*.sqlite3
+*.db
+instance/
+
+# Node
+node_modules/
+frontend/dist/
+frontend/.vite/
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+*.env.*
+!.env.example
+
+# Face recognition models and captured media (never committed, contains biometric-adjacent artifacts)
+backend/models_data/*.onnx
+backend/models_data/*.pb
+backend/uploads/
+backend/captures/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Build artifacts
+frontend/build/
+coverage/
+htmlcov/
+.coverage

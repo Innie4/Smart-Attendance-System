@@ -1,0 +1,31 @@
+# Web framework and API
+Flask==3.0.3
+Flask-SQLAlchemy==3.1.1
+Flask-JWT-Extended==4.6.0
+Flask-Bcrypt==1.0.1
+Flask-Cors==4.0.1
+python-dotenv==1.0.1
+
+# Database drivers
+psycopg2-binary==2.9.9
+PyMySQL==1.1.1
+
+# Computer vision and facial recognition
+# opencv-contrib-python ships the DNN face pipeline (YuNet detector, SFace recognizer)
+# used in app/services/face_service.py. SFace embeddings are trained with an
+# ArcFace-family loss, giving ArcFace-quality 128D vectors without a TensorFlow/PyTorch
+# runtime, which keeps the service deployable on constrained hardware.
+opencv-contrib-python==4.10.0.84
+numpy==1.26.4
+scipy==1.13.1
+
+# Reporting
+reportlab==4.2.2
+pandas==2.2.2
+
+# Testing
+pytest==8.3.2
+pytest-cov==5.0.0
+
+# Production server
+gunicorn==22.0.0
