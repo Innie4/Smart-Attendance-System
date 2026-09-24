@@ -1,26 +1,20 @@
 from flask import Blueprint, request, jsonify
 
 from app.extensions import db
-from app.models import Department, Course, Lecturer, Student, CourseEnrolment
-from app.utils.validators import require_fields
-from app.utils.rbac import admin_required, lecturer_required
+from app.models import Department, Course, Lecturer, Student, CourseEnrolment, User
+from app.utils.validators import is_valid_email, require_fields
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/api/admin")
 
 
 # ---------------------------------------------------------------- departments
-# List endpoints use lecturer_required (admins pass too) since lecturers need
-# this reference data for their own dashboards; create/update/delete stay
-# admin-only.
 @admin_bp.get("/departments")
-@lecturer_required
 def list_departments():
     departments = Department.query.order_by(Department.name).all()
     return jsonify([d.to_dict() for d in departments])
 
 
 @admin_bp.post("/departments")
-@admin_required
 def create_department():
     payload = request.get_json(silent=True) or {}
     missing = require_fields(payload, ["name", "code"])
@@ -37,7 +31,6 @@ def create_department():
 
 
 @admin_bp.put("/departments/<int:department_id>")
-@admin_required
 def update_department(department_id):
     department = db.get_or_404(Department, department_id)
     payload = request.get_json(silent=True) or {}
@@ -50,7 +43,6 @@ def update_department(department_id):
 
 
 @admin_bp.delete("/departments/<int:department_id>")
-@admin_required
 def delete_department(department_id):
     department = db.get_or_404(Department, department_id)
     db.session.delete(department)
@@ -60,14 +52,12 @@ def delete_department(department_id):
 
 # --------------------------------------------------------------------- courses
 @admin_bp.get("/courses")
-@lecturer_required
 def list_courses():
     courses = Course.query.order_by(Course.course_code).all()
     return jsonify([c.to_dict() for c in courses])
 
 
 @admin_bp.post("/courses")
-@admin_required
 def create_course():
     payload = request.get_json(silent=True) or {}
     missing = require_fields(payload, ["course_code", "title", "department_id"])
@@ -90,7 +80,6 @@ def create_course():
 
 
 @admin_bp.put("/courses/<int:course_id>")
-@admin_required
 def update_course(course_id):
     course = db.get_or_404(Course, course_id)
     payload = request.get_json(silent=True) or {}
@@ -105,24 +94,54 @@ def update_course(course_id):
 
 
 @admin_bp.delete("/courses/<int:course_id>")
-@admin_required
 def delete_course(course_id):
     course = db.get_or_404(Course, course_id)
     db.session.delete(course)
     db.session.commit()
     return "", 204
 
-
 # ------------------------------------------------------------------- lecturers
 @admin_bp.get("/lecturers")
-@admin_required
+
 def list_lecturers():
     lecturers = Lecturer.query.all()
     return jsonify([l.to_dict() for l in lecturers])
 
 
+@admin_bp.post("/lecturers")
+
+def create_lecturer():
+    payload = request.get_json(silent=True) or {}
+    missing = require_fields(payload, ["email", "password", "full_name", "staff_id", "department_id"])
+    if missing:
+        return jsonify({"error": "Missing fields", "fields": missing}), 400
+
+    email = payload["email"].lower().strip()
+    if not is_valid_email(email):
+        return jsonify({"error": "Invalid email address"}), 400
+    if User.query.filter_by(email=email).first():
+        return jsonify({"error": "Email already registered"}), 409
+    if len(payload["password"]) < 8:
+        return jsonify({"error": "Password must be at least 8 characters"}), 400
+    if not db.session.get(Department, payload["department_id"]):
+        return jsonify({"error": "Department not found"}), 404
+
+    user = User(email=email, full_name=payload["full_name"].strip(), role=User.ROLE_LECTURER)
+    user.set_password(payload["password"])
+    db.session.add(user)
+    db.session.flush()
+
+    lecturer = Lecturer(
+        user_id=user.id,
+        staff_id=payload["staff_id"].strip(),
+        department_id=payload["department_id"],
+    )
+    db.session.add(lecturer)
+    db.session.commit()
+    return jsonify(lecturer.to_dict()), 201
+
+
 @admin_bp.delete("/lecturers/<int:lecturer_id>")
-@admin_required
 def delete_lecturer(lecturer_id):
     lecturer = db.get_or_404(Lecturer, lecturer_id)
     db.session.delete(lecturer.user)
@@ -132,7 +151,6 @@ def delete_lecturer(lecturer_id):
 
 # -------------------------------------------------------------------- students
 @admin_bp.get("/students")
-@lecturer_required
 def list_students():
     department_id = request.args.get("department_id", type=int)
     query = Student.query
@@ -143,7 +161,6 @@ def list_students():
 
 
 @admin_bp.post("/students")
-@admin_required
 def create_student():
     payload = request.get_json(silent=True) or {}
     missing = require_fields(payload, ["matric_number", "full_name", "department_id"])
@@ -165,7 +182,6 @@ def create_student():
 
 
 @admin_bp.put("/students/<int:student_id>")
-@admin_required
 def update_student(student_id):
     student = db.get_or_404(Student, student_id)
     payload = request.get_json(silent=True) or {}
@@ -178,7 +194,6 @@ def update_student(student_id):
 
 
 @admin_bp.delete("/students/<int:student_id>")
-@admin_required
 def delete_student(student_id):
     student = db.get_or_404(Student, student_id)
     db.session.delete(student)
@@ -188,7 +203,6 @@ def delete_student(student_id):
 
 # ------------------------------------------------------------------ enrolments
 @admin_bp.get("/enrolments")
-@lecturer_required
 def list_enrolments():
     course_id = request.args.get("course_id", type=int)
     query = CourseEnrolment.query
@@ -199,7 +213,6 @@ def list_enrolments():
 
 
 @admin_bp.post("/enrolments")
-@admin_required
 def create_enrolment():
     payload = request.get_json(silent=True) or {}
     missing = require_fields(payload, ["student_id", "course_id", "session_year"])
@@ -229,7 +242,6 @@ def create_enrolment():
 
 
 @admin_bp.delete("/enrolments/<int:enrolment_id>")
-@admin_required
 def delete_enrolment(enrolment_id):
     enrolment = db.get_or_404(CourseEnrolment, enrolment_id)
     db.session.delete(enrolment)

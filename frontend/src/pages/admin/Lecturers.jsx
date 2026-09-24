@@ -40,7 +40,7 @@ export default function Lecturers() {
     event.preventDefault()
     setError('')
     try {
-      await client.post('/auth/register', { ...form, department_id: Number(form.department_id), role: 'lecturer' })
+      await client.post('/admin/lecturers', { ...form, department_id: Number(form.department_id) })
       setForm(initialForm)
       setOpen(false)
       load()

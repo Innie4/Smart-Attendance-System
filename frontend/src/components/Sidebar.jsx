@@ -10,7 +10,6 @@ import {
   Video,
   FileBarChart,
 } from 'lucide-react'
-import { useAuth } from '../context/AuthContext.jsx'
 
 const ADMIN_LINKS = [
   { to: '/admin', label: 'Overview', icon: LayoutGrid, end: true },
@@ -22,15 +21,14 @@ const ADMIN_LINKS = [
 ]
 
 const LECTURER_LINKS = [
-  { to: '/lecturer', label: 'Overview', icon: LayoutGrid, end: true },
+  { to: '/lecturer', label: 'Sessions', icon: LayoutGrid, end: true },
   { to: '/lecturer/enrolment', label: 'Facial Enrolment', icon: ScanFace },
   { to: '/lecturer/attendance', label: 'Live Attendance', icon: Video },
   { to: '/lecturer/reports', label: 'Reports', icon: FileBarChart },
 ]
 
 export default function Sidebar() {
-  const { user } = useAuth()
-  const links = user?.role === 'admin' ? ADMIN_LINKS : LECTURER_LINKS
+  const links = [...ADMIN_LINKS, ...LECTURER_LINKS]
 
   return (
     <aside className="hidden w-60 shrink-0 flex-col border-r border-ink-200 bg-white md:flex">

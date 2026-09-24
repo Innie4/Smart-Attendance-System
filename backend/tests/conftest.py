@@ -73,17 +73,11 @@ def seeded(app):
     }
 
 
-def auth_headers(client, email, password):
-    response = client.post("/api/auth/login", json={"email": email, "password": password})
-    token = response.get_json()["access_token"]
-    return {"Authorization": f"Bearer {token}"}
+@pytest.fixture()
+def admin_headers():
+    return {}
 
 
 @pytest.fixture()
-def admin_headers(client, seeded):
-    return auth_headers(client, "admin@test.local", "Password@1")
-
-
-@pytest.fixture()
-def lecturer_headers(client, seeded):
-    return auth_headers(client, "lecturer@test.local", "Password@1")
+def lecturer_headers():
+    return {}

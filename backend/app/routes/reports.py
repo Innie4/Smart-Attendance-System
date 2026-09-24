@@ -4,7 +4,6 @@ from app.extensions import db
 from app.models import Course, CourseEnrolment, Student, AttendanceSession, AttendanceLog
 from app.services.attendance_service import build_course_attendance_report
 from app.services.report_service import generate_csv, generate_pdf
-from app.utils.rbac import lecturer_required
 
 reports_bp = Blueprint("reports", __name__, url_prefix="/api/reports")
 
@@ -53,7 +52,6 @@ def _compute_report(course_id: int, session_year: str):
 
 
 @reports_bp.get("/courses/<int:course_id>")
-@lecturer_required
 def course_attendance_report(course_id):
     session_year = request.args.get("session_year")
     if not session_year:
@@ -74,7 +72,6 @@ def course_attendance_report(course_id):
 
 
 @reports_bp.get("/courses/<int:course_id>/export.csv")
-@lecturer_required
 def export_csv(course_id):
     session_year = request.args.get("session_year")
     if not session_year:
@@ -91,7 +88,6 @@ def export_csv(course_id):
 
 
 @reports_bp.get("/courses/<int:course_id>/export.pdf")
-@lecturer_required
 def export_pdf(course_id):
     session_year = request.args.get("session_year")
     if not session_year:

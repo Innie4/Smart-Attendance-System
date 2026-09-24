@@ -6,7 +6,6 @@ from flask import Blueprint, request, jsonify, current_app
 from app.extensions import db
 from app.models import Student, FacialEnrolment
 from app.services.face_service import FaceRecognitionPipeline
-from app.utils.rbac import lecturer_required
 
 enrolment_bp = Blueprint("enrolment", __name__, url_prefix="/api/facial-enrolment")
 
@@ -25,7 +24,6 @@ def _decode_frame(data_url: str):
 
 
 @enrolment_bp.get("/<int:student_id>")
-@lecturer_required
 def get_enrolment_status(student_id):
     student = db.get_or_404(Student, student_id)
     return jsonify(
@@ -39,7 +37,6 @@ def get_enrolment_status(student_id):
 
 
 @enrolment_bp.post("/<int:student_id>")
-@lecturer_required
 def enrol_student(student_id):
     student = db.get_or_404(Student, student_id)
     payload = request.get_json(silent=True) or {}
@@ -86,7 +83,6 @@ def enrol_student(student_id):
 
 
 @enrolment_bp.delete("/<int:student_id>")
-@lecturer_required
 def revoke_enrolment(student_id):
     """NDPA right-to-erasure support: removes the stored embedding vector
     without affecting the student's academic records.

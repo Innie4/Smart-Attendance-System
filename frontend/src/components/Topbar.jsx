@@ -1,10 +1,8 @@
 import { useEffect, useState } from 'react'
-import { LogOut, WifiOff, Wifi } from 'lucide-react'
-import { useAuth } from '../context/AuthContext.jsx'
+import { WifiOff, Wifi } from 'lucide-react'
 import { getQueuedCount, flushQueue } from '../lib/offlineQueue.js'
 
 export default function Topbar() {
-  const { user, logout } = useAuth()
   const [isOnline, setIsOnline] = useState(navigator.onLine)
   const [queuedCount, setQueuedCount] = useState(0)
 
@@ -54,17 +52,7 @@ export default function Topbar() {
       </div>
 
       <div className="flex items-center gap-4">
-        <div className="text-right">
-          <p className="text-sm font-medium text-ink-900">{user?.full_name}</p>
-          <p className="text-xs capitalize text-ink-400">{user?.role}</p>
-        </div>
-        <button
-          onClick={logout}
-          className="flex h-8 w-8 items-center justify-center rounded-md text-ink-400 hover:bg-ink-50 hover:text-ink-700"
-          title="Sign out"
-        >
-          <LogOut size={16} />
-        </button>
+        <span className="text-sm font-medium text-ink-900">Smart Attendance</span>
       </div>
     </header>
   )

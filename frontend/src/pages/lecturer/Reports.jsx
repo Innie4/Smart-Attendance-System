@@ -34,8 +34,7 @@ export default function Reports() {
     const url = `${client.defaults.baseURL}/reports/courses/${courseId}/export.${format}?session_year=${encodeURIComponent(
       sessionYear
     )}`
-    const token = localStorage.getItem('access_token')
-    fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(url)
       .then((res) => res.blob())
       .then((blob) => {
         const link = document.createElement('a')

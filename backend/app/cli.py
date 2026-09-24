@@ -58,4 +58,4 @@ def register_cli(app):
             )
 
         db.session.commit()
-        click.echo("Seed data created. Admin login: admin@smartattendance.ng / Admin@12345")
+        click.echo("Seed data created.")

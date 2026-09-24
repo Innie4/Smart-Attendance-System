@@ -1,5 +1,4 @@
 import os
-from datetime import timedelta
 
 
 class Config:
@@ -8,14 +7,6 @@ class Config:
         "DATABASE_URL", "sqlite:///" + os.path.join(os.getcwd(), "attendance.db")
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-
-    JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "dev-jwt-secret-change-me-please-32-bytes")
-    JWT_ACCESS_TOKEN_EXPIRES = timedelta(
-        minutes=int(os.environ.get("JWT_ACCESS_TOKEN_EXPIRES_MINUTES", 30))
-    )
-    JWT_REFRESH_TOKEN_EXPIRES = timedelta(
-        days=int(os.environ.get("JWT_REFRESH_TOKEN_EXPIRES_DAYS", 7))
-    )
 
     # Face matching tuned threshold. Distances below this value are accepted
     # as a match; SFace cosine-derived L2 distance in the ~1.0-1.1 band is the
@@ -34,8 +25,17 @@ class Config:
         "MODEL_DIR", os.path.join(os.path.dirname(__file__), "..", "models_data")
     )
 
+    # Cloudflare R2 (S3-compatible) storage
+    CLOUD_STORAGE_PROVIDER = os.environ.get("CLOUD_STORAGE_PROVIDER", "")
+    CLOUD_STORAGE_BUCKET = os.environ.get("CLOUD_STORAGE_BUCKET", "")
+    CLOUD_STORAGE_ACCESS_KEY = os.environ.get("CLOUD_STORAGE_ACCESS_KEY", "")
+    CLOUD_STORAGE_SECRET_KEY = os.environ.get("CLOUD_STORAGE_SECRET_KEY", "")
+    CLOUD_STORAGE_ENDPOINT = os.environ.get("CLOUD_STORAGE_ENDPOINT", "")
+    CLOUD_STORAGE_REGION = os.environ.get("CLOUD_STORAGE_REGION", "auto")
+    CLOUDFLARE_ACCOUNT_ID = os.environ.get("CLOUDFLARE_ACCOUNT_ID", "")
+    CLOUDFLARE_R2_API_TOKEN = os.environ.get("CLOUDFLARE_R2_API_TOKEN", "")
+
 
 class TestConfig(Config):
     TESTING = True
     SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
-    JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=30)

@@ -1,5 +1,4 @@
 from flask import Blueprint, request, jsonify, current_app
-from flask_jwt_extended import get_jwt_identity
 
 from app.extensions import db
 from app.models import (
@@ -13,19 +12,19 @@ from app.models import (
 )
 from app.services.face_service import FaceRecognitionPipeline, best_match
 from app.services.liveness import BlinkDetector
-from app.utils.rbac import lecturer_required
 from app.utils.validators import require_fields
 from app.routes.enrolment import _decode_frame
 
 attendance_bp = Blueprint("attendance", __name__, url_prefix="/api/attendance")
 
 
-def _current_lecturer():
-    return Lecturer.query.filter_by(user_id=int(get_jwt_identity())).first()
+def _current_lecturer(lecturer_id=None):
+    if lecturer_id is not None:
+        return db.session.get(Lecturer, lecturer_id)
+    return Lecturer.query.first()
 
 
 @attendance_bp.post("/sessions")
-@lecturer_required
 def create_session():
     payload = request.get_json(silent=True) or {}
     missing = require_fields(payload, ["course_id"])
@@ -36,9 +35,9 @@ def create_session():
     if not course:
         return jsonify({"error": "Course not found"}), 404
 
-    lecturer = _current_lecturer()
+    lecturer = _current_lecturer(payload.get("lecturer_id"))
     if not lecturer:
-        return jsonify({"error": "Only a lecturer profile can open a session"}), 403
+        return jsonify({"error": "No lecturer profile exists yet"}), 400
 
     open_session = AttendanceSession.query.filter_by(
         course_id=course.id, lecturer_id=lecturer.id, is_locked=False
@@ -53,14 +52,12 @@ def create_session():
 
 
 @attendance_bp.get("/sessions/<int:session_id>")
-@lecturer_required
 def get_session(session_id):
     session = db.get_or_404(AttendanceSession, session_id)
     return jsonify(session.to_dict())
 
 
 @attendance_bp.post("/sessions/<int:session_id>/close")
-@lecturer_required
 def close_session(session_id):
     session = db.get_or_404(AttendanceSession, session_id)
     session.close()
@@ -69,14 +66,12 @@ def close_session(session_id):
 
 
 @attendance_bp.get("/sessions/<int:session_id>/logs")
-@lecturer_required
 def get_session_logs(session_id):
     session = db.get_or_404(AttendanceSession, session_id)
     return jsonify([log.to_dict() for log in session.logs])
 
 
 @attendance_bp.get("/sessions/<int:session_id>/roster-cache")
-@lecturer_required
 def roster_cache(session_id):
     """Returns each enrolled student's offline descriptor so the lecturer's
     device can cache it locally and keep recognising students if the network
@@ -129,7 +124,6 @@ def _course_roster_embeddings(course_id: int, session_year: str):
 
 
 @attendance_bp.post("/sessions/<int:session_id>/recognize")
-@lecturer_required
 def recognize(session_id):
     session = db.get_or_404(AttendanceSession, session_id)
     if session.is_locked:
