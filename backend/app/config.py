@@ -1,6 +1,28 @@
 import os
 
 
+def _resolve_model_dir(configured):
+    """Resolve MODEL_DIR to an existing directory regardless of cwd.
+
+    Accepts values relative to the current directory, to backend/, or to
+    the repo root (e.g. "./models_data" and "./backend/models_data" both
+    work whether the server starts from backend/ or the repo root).
+    """
+    here = os.path.dirname(os.path.abspath(__file__))
+    backend_dir = os.path.abspath(os.path.join(here, ".."))
+    repo_root = os.path.abspath(os.path.join(backend_dir, ".."))
+    if os.path.isabs(configured):
+        return configured
+    for candidate in (
+        os.path.abspath(configured),
+        os.path.join(backend_dir, configured),
+        os.path.join(repo_root, configured),
+    ):
+        if os.path.isdir(candidate):
+            return os.path.abspath(candidate)
+    return os.path.abspath(configured)
+
+
 class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-change-me")
     SQLALCHEMY_DATABASE_URI = os.environ.get(
@@ -21,9 +43,7 @@ class Config:
 
     CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "http://localhost:5173").split(",")
 
-    MODEL_DIR = os.environ.get(
-        "MODEL_DIR", os.path.join(os.path.dirname(__file__), "..", "models_data")
-    )
+    MODEL_DIR = _resolve_model_dir(os.environ.get("MODEL_DIR", "models_data"))
 
     # Cloudflare R2 (S3-compatible) storage
     CLOUD_STORAGE_PROVIDER = os.environ.get("CLOUD_STORAGE_PROVIDER", "")
