@@ -144,6 +144,16 @@ def create_lecturer():
 @admin_bp.delete("/lecturers/<int:lecturer_id>")
 def delete_lecturer(lecturer_id):
     lecturer = db.get_or_404(Lecturer, lecturer_id)
+    if lecturer.sessions:
+        return (
+            jsonify(
+                {
+                    "error": "Lecturer has attendance sessions on record and cannot "
+                    "be removed (sessions are kept for audit)."
+                }
+            ),
+            409,
+        )
     db.session.delete(lecturer.user)
     db.session.commit()
     return "", 204

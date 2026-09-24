@@ -50,9 +50,13 @@ export default function Lecturers() {
   }
 
   async function handleDelete(id) {
-    if (!confirm('Remove this lecturer account? Attendance sessions they opened are kept for audit.')) return
-    await client.delete(`/admin/lecturers/${id}`)
-    load()
+    if (!confirm('Remove this lecturer account? Lecturers with recorded attendance sessions cannot be removed.')) return
+    try {
+      await client.delete(`/admin/lecturers/${id}`)
+      load()
+    } catch (err) {
+      setError(err.response?.data?.error || 'Could not remove lecturer account')
+    }
   }
 
   return (
@@ -66,6 +70,8 @@ export default function Lecturers() {
           <Plus size={16} /> New lecturer
         </button>
       </div>
+
+      {error && !open && <p className="text-sm text-signal-absent">{error}</p>}
 
       <DataTable
         columns={[

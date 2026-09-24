@@ -23,7 +23,9 @@ class Student(db.Model):
         uselist=False,
         cascade="all, delete-orphan",
     )
-    attendance_logs = db.relationship("AttendanceLog", back_populates="student")
+    attendance_logs = db.relationship(
+        "AttendanceLog", back_populates="student", cascade="all, delete-orphan"
+    )
 
     def record_consent(self):
         self.consent_given = True
