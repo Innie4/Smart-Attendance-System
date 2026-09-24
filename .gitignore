@@ -22,6 +22,10 @@ npm-debug.log*
 *.env.*
 !.env.example
 
+# Local embedded PostgreSQL data (managed by backend/local_postgres.py,
+# running as Windows service "smart-attendance-pg")
+.pgdata/
+
 # Face recognition models and captured media (never committed, contains biometric-adjacent artifacts)
 backend/models_data/*.onnx
 backend/models_data/*.pb
