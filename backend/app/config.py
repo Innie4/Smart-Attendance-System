@@ -41,7 +41,11 @@ class Config:
     # flagged as ineligible for examinations.
     NUC_ATTENDANCE_THRESHOLD = float(os.environ.get("NUC_ATTENDANCE_THRESHOLD", 75.0))
 
-    CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "http://localhost:5173").split(",")
+    CORS_ORIGINS = [
+        origin.strip().rstrip("/")
+        for origin in os.environ.get("CORS_ORIGINS", "http://localhost:5173").split(",")
+        if origin.strip()
+    ]
 
     MODEL_DIR = _resolve_model_dir(os.environ.get("MODEL_DIR", "models_data"))
 
