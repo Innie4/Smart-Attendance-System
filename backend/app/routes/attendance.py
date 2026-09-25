@@ -17,6 +17,18 @@ from app.routes.enrolment import _decode_frame
 
 attendance_bp = Blueprint("attendance", __name__, url_prefix="/api/attendance")
 
+# The YuNet + SFace pair costs ~2s to load from ONNX, so the pipeline is built
+# once per process and reused. Live attendance polls every few seconds and
+# would otherwise re-read the weights on every scan.
+_pipeline = None
+
+
+def _get_pipeline():
+    global _pipeline
+    if _pipeline is None:
+        _pipeline = FaceRecognitionPipeline(current_app.config["MODEL_DIR"])
+    return _pipeline
+
 
 def _current_lecturer(lecturer_id=None):
     if lecturer_id is not None:
@@ -123,6 +135,31 @@ def _course_roster_embeddings(course_id: int, session_year: str):
     return [(student_id, json.loads(vector)) for student_id, vector in rows]
 
 
+def _passes_liveness(ear_sequence, reported_blink_count=0) -> bool:
+    """Decides whether a scan clears the blink liveness check.
+
+    The browser samples EAR on every animation frame but only ships a short
+    trailing window with each request, so by the time a scan reaches the
+    server a real blink has usually scrolled out of that window. The client
+    also reports how many blinks its own sticky detector has counted for the
+    session, so a blink is honoured once it has happened instead of having to
+    coincide with one particular request. The trailing window is still
+    replayed server-side so a client that reports blinks without supplying
+    matching EAR evidence is not taken at its word on its own.
+    """
+    if reported_blink_count and int(reported_blink_count) > 0:
+        return True
+
+    detector = BlinkDetector(
+        ear_threshold=current_app.config["LIVENESS_EAR_THRESHOLD"],
+        consec_frames=current_app.config["LIVENESS_CONSEC_FRAMES"],
+        window=max(30, len(ear_sequence) or 30),
+    )
+    for reading in ear_sequence:
+        detector.update(reading.get("left", 1.0), reading.get("right", 1.0))
+    return detector.is_live()
+
+
 @attendance_bp.post("/sessions/<int:session_id>/recognize")
 def recognize(session_id):
     session = db.get_or_404(AttendanceSession, session_id)
@@ -139,7 +176,7 @@ def recognize(session_id):
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
 
-    pipeline = FaceRecognitionPipeline(current_app.config["MODEL_DIR"])
+    pipeline = _get_pipeline()
     faces = pipeline.detect_faces(frame)
     if len(faces) == 0:
         return jsonify({"status": "no_face_detected"}), 200
@@ -155,14 +192,7 @@ def recognize(session_id):
         return jsonify({"status": "no_match"}), 200
 
     ear_sequence = payload.get("ear_sequence", [])
-    detector = BlinkDetector(
-        ear_threshold=current_app.config["LIVENESS_EAR_THRESHOLD"],
-        consec_frames=current_app.config["LIVENESS_CONSEC_FRAMES"],
-    )
-    for reading in ear_sequence:
-        detector.update(reading.get("left", 1.0), reading.get("right", 1.0))
-
-    if not detector.is_live():
+    if not _passes_liveness(ear_sequence, payload.get("blink_count", 0)):
         return jsonify({"status": "liveness_check_failed", "student_id": match["student_id"]}), 200
 
     existing_log = AttendanceLog.query.filter_by(

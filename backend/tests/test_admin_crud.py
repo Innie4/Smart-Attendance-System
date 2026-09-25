@@ -47,6 +47,41 @@ def test_create_enrolment_prevents_duplicates(client, seeded, admin_headers):
     assert duplicate.status_code == 409
 
 
+def test_create_department_trims_whitespace(client, seeded, admin_headers):
+    """The admin form can submit padded values; they must not create a
+    distinct-looking department or trip the unique index.
+    """
+    response = client.post(
+        "/api/admin/departments",
+        headers=admin_headers,
+        json={"name": "  Mass Media  ", "code": "  mrd  "},
+    )
+    assert response.status_code == 201
+    assert response.get_json()["name"] == "Mass Media"
+    assert response.get_json()["code"] == "MRD"
+
+
+def test_create_department_requires_both_fields(client, seeded, admin_headers):
+    response = client.post(
+        "/api/admin/departments", headers=admin_headers, json={"name": "No Code"}
+    )
+    assert response.status_code == 400
+    assert response.get_json()["fields"] == ["code"]
+
+
+def test_update_department_rename(client, seeded, admin_headers):
+    created = client.post(
+        "/api/admin/departments", headers=admin_headers, json={"name": "Physics", "code": "PHY"}
+    ).get_json()
+    response = client.put(
+        f"/api/admin/departments/{created['id']}",
+        headers=admin_headers,
+        json={"name": "Physics & Engineering"},
+    )
+    assert response.status_code == 200
+    assert response.get_json()["name"] == "Physics & Engineering"
+
+
 def test_delete_department(client, seeded, admin_headers):
     created = client.post(
         "/api/admin/departments", headers=admin_headers, json={"name": "Chemistry", "code": "CHM"}

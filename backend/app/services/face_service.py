@@ -92,6 +92,8 @@ class FaceRecognitionPipeline:
         self.model_dir = model_dir
         self._detector = None
         self._recognizer = None
+        self._detector_failed = False
+        self._recognizer_failed = False
 
     def _detector_path(self) -> str:
         return os.path.join(self.model_dir, self.DETECTOR_FILENAME)
@@ -102,9 +104,10 @@ class FaceRecognitionPipeline:
     def _ensure_loaded(self):
         import cv2
 
-        if self._detector is None:
+        if self._detector is None and not self._detector_failed:
             detector_path = self._detector_path()
             if not os.path.exists(detector_path):
+                self._detector_failed = True
                 raise RuntimeError(
                     f"Face detector weights missing at {detector_path}. "
                     "Run `python download_models.py` from the backend directory."
@@ -112,14 +115,21 @@ class FaceRecognitionPipeline:
             self._detector = cv2.FaceDetectorYN.create(
                 detector_path, "", (320, 320), score_threshold=0.8
             )
-        if self._recognizer is None:
+        if self._recognizer is None and not self._recognizer_failed:
             recognizer_path = self._recognizer_path()
             if not os.path.exists(recognizer_path):
+                self._recognizer_failed = True
                 raise RuntimeError(
                     f"Face recognizer weights missing at {recognizer_path}. "
                     "Run `python download_models.py` from the backend directory."
                 )
             self._recognizer = cv2.FaceRecognizerSF.create(recognizer_path, "")
+
+        if self._detector is None or self._recognizer is None:
+            raise RuntimeError(
+                f"Face model weights are unavailable in {self.model_dir}. "
+                "Run `python download_models.py` from the backend directory."
+            )
 
     def detect_faces(self, frame):
         """Returns YuNet detections for a BGR frame: an array of rows shaped

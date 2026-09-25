@@ -11,8 +11,13 @@ export default function Departments() {
   const [error, setError] = useState('')
 
   async function load() {
-    const { data } = await client.get('/admin/departments')
-    setDepartments(data)
+    try {
+      const { data } = await client.get('/admin/departments')
+      setDepartments(data)
+      setError('')
+    } catch (err) {
+      setError(err.response?.data?.error || 'Could not load departments. Is the API running?')
+    }
   }
 
   useEffect(() => {
@@ -23,19 +28,30 @@ export default function Departments() {
     event.preventDefault()
     setError('')
     try {
-      await client.post('/admin/departments', form)
+      await client.post('/admin/departments', {
+        name: form.name.trim(),
+        code: form.code.trim(),
+      })
       setForm({ name: '', code: '' })
       setOpen(false)
       load()
     } catch (err) {
-      setError(err.response?.data?.error || 'Could not create department')
+      if (err.response) {
+        setError(err.response.data?.error || 'Could not create department')
+      } else {
+        setError('Could not reach the API. Check that the backend is running.')
+      }
     }
   }
 
   async function handleDelete(id) {
     if (!confirm('Delete this department? Courses and students attached to it must be moved first.')) return
-    await client.delete(`/admin/departments/${id}`)
-    load()
+    try {
+      await client.delete(`/admin/departments/${id}`)
+      load()
+    } catch (err) {
+      setError(err.response?.data?.error || 'Could not delete department')
+    }
   }
 
   return (
@@ -49,6 +65,10 @@ export default function Departments() {
           <Plus size={16} /> New department
         </button>
       </div>
+
+      {error && !open && (
+        <p className="rounded-md bg-signal-absent/10 px-3 py-2 text-sm text-signal-absent">{error}</p>
+      )}
 
       <DataTable
         columns={[
@@ -108,7 +128,7 @@ export default function Departments() {
               placeholder="CSC"
             />
           </div>
-          {error && <p className="text-sm text-signal-absent">{error}</p>}
+          {error && open && <p className="text-sm text-signal-absent">{error}</p>}
         </form>
       </Modal>
     </div>

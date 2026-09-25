@@ -9,6 +9,18 @@ from app.services.face_service import FaceRecognitionPipeline
 
 enrolment_bp = Blueprint("enrolment", __name__, url_prefix="/api/facial-enrolment")
 
+# Reused across requests for the same reason as in app/routes/attendance.py:
+# loading the ONNX weights costs ~2s and enrolment submits several frames
+# per call.
+_pipeline = None
+
+
+def _get_pipeline():
+    global _pipeline
+    if _pipeline is None:
+        _pipeline = FaceRecognitionPipeline(current_app.config["MODEL_DIR"])
+    return _pipeline
+
 
 def _decode_frame(data_url: str):
     import cv2
@@ -62,7 +74,7 @@ def enrol_student(student_id):
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
 
-    pipeline = FaceRecognitionPipeline(current_app.config["MODEL_DIR"])
+    pipeline = _get_pipeline()
     try:
         vector = pipeline.enrol_from_frames(frames)
     except (ValueError, RuntimeError) as exc:

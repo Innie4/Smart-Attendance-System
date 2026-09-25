@@ -9,6 +9,9 @@ import { cacheRoster, getCachedRoster } from '../../lib/rosterCache.js'
 import { queueAttendanceTick } from '../../lib/offlineQueue.js'
 
 const RECOGNITION_INTERVAL_MS = 2500
+// ~6s of video at 60fps. The backend replays this window server-side, so it
+// needs to be long enough to still contain a blink by the time a scan lands.
+const EAR_WINDOW_SIZE = 360
 
 export default function LiveAttendance() {
   const videoRef = useRef(null)
@@ -87,7 +90,7 @@ export default function LiveAttendance() {
             const leftEar = eyeAspectRatio(detection.landmarks.getLeftEye())
             const rightEar = eyeAspectRatio(detection.landmarks.getRightEye())
             blinkDetectorRef.current.update(leftEar, rightEar)
-            earBufferRef.current = [...earBufferRef.current, { left: leftEar, right: rightEar }].slice(-30)
+            earBufferRef.current = [...earBufferRef.current, { left: leftEar, right: rightEar }].slice(-EAR_WINDOW_SIZE)
             setLiveStatus(blinkDetectorRef.current.isLive() ? 'live' : 'checking')
           } else {
             setLiveStatus('no_face')
@@ -127,6 +130,7 @@ export default function LiveAttendance() {
           frame,
           session_year: sessionYear,
           ear_sequence: earBufferRef.current,
+          blink_count: blinkDetectorRef.current.blinkCount,
         })
         handleRecognitionResult(data)
       } catch (err) {
@@ -148,9 +152,19 @@ export default function LiveAttendance() {
     } else if (data.status === 'already_marked') {
       pushFeed({ label: 'Duplicate scan', detail: 'Already marked this session', variant: 'pending' })
     } else if (data.status === 'liveness_check_failed') {
-      pushFeed({ label: 'Liveness check failed', detail: 'Possible spoof attempt', variant: 'warning' })
+      setLiveStatus('blink_needed')
+      pushFeed({ label: 'Liveness check failed', detail: 'Blink at the camera, then step back in', variant: 'warning' })
     } else if (data.status === 'no_match') {
       pushFeed({ label: 'No match', detail: 'Face not recognised in this course roster', variant: 'absent' })
+    } else if (data.status === 'no_face_detected') {
+      setLiveStatus('no_face')
+      pushFeed({ label: 'No face detected', detail: 'Move into frame and face the camera', variant: 'absent' })
+    } else if (data.status === 'multiple_faces_detected') {
+      pushFeed({ label: 'Multiple faces', detail: 'Only one person can be scanned at a time', variant: 'warning' })
+    } else if (data.status === 'session_closed') {
+      pushFeed({ label: 'Session closed', detail: 'Reopen a session to keep scanning', variant: 'absent' })
+    } else if (data.error) {
+      pushFeed({ label: 'Scan error', detail: data.error, variant: 'absent' })
     }
   }
 
@@ -230,7 +244,7 @@ export default function LiveAttendance() {
             <div className="relative aspect-video bg-ink-950">
               <video ref={videoRef} className="h-full w-full object-cover" muted playsInline />
               <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
-              <div className="absolute bottom-3 left-3 flex gap-2">
+              <div className="absolute bottom-3 left-3 flex flex-wrap items-center gap-2">
                 <StatusIndicator status={liveStatus} />
                 {!navigator.onLine && (
                   <span className="flex items-center gap-1 rounded-full bg-signal-warning/90 px-2.5 py-1 text-xs font-medium text-white">
@@ -273,8 +287,9 @@ export default function LiveAttendance() {
 function StatusIndicator({ status }) {
   const map = {
     idle: { label: 'Idle', variant: 'pending' },
-    checking: { label: 'Checking liveness...', variant: 'warning' },
+    checking: { label: 'Blink to confirm liveness', variant: 'warning' },
     live: { label: 'Live face confirmed', variant: 'present' },
+    blink_needed: { label: 'Blink to confirm liveness', variant: 'warning' },
     no_face: { label: 'No face detected', variant: 'absent' },
   }
   const current = map[status] || map.idle
