@@ -4,6 +4,7 @@ import client from '../../api/client.js'
 import Modal from '../../components/Modal.jsx'
 import { startCamera, stopCamera, captureFrameAsBase64 } from '../../lib/camera.js'
 import { loadFaceModels, detectFaceWithLandmarks, extractOfflineDescriptor } from '../../lib/faceApi.js'
+import { describeError } from '../../lib/errors.js'
 
 const ANGLES = [
   { key: 'front', label: 'Look straight at the camera' },
@@ -30,7 +31,16 @@ export default function FacialEnrolment() {
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
-    client.get('/admin/students').then((res) => setStudents(res.data))
+    async function load() {
+      try {
+        const { data } = await client.get('/admin/students')
+        setStudents(data)
+        setStatus(null)
+      } catch (err) {
+        setStatus({ type: 'error', message: describeError(err, 'Could not load students') })
+      }
+    }
+    load()
     loadFaceModels().catch(() => {})
     return () => {
       cancelAnimationFrame(rafRef.current)
@@ -123,7 +133,7 @@ export default function FacialEnrolment() {
       setConsentOpen(false)
       setConsentChecked(false)
     } catch (err) {
-      setStatus({ type: 'error', message: err.response?.data?.error || 'Enrolment failed' })
+      setStatus({ type: 'error', message: describeError(err, 'Enrolment failed') })
     } finally {
       setSubmitting(false)
     }
@@ -138,7 +148,7 @@ export default function FacialEnrolment() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[360px_1fr]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,360px)_1fr]">
         <div className="card space-y-4 p-5">
           <div>
             <label className="label">Student</label>

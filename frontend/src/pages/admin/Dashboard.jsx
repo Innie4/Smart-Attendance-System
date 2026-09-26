@@ -2,24 +2,31 @@ import { useEffect, useState } from 'react'
 import { Building2, BookOpen, GraduationCap, Users } from 'lucide-react'
 import client from '../../api/client.js'
 import StatCard from '../../components/StatCard.jsx'
+import { describeError } from '../../lib/errors.js'
 
 export default function Dashboard() {
   const [counts, setCounts] = useState({ departments: 0, courses: 0, lecturers: 0, students: 0 })
+  const [error, setError] = useState('')
 
   useEffect(() => {
     async function load() {
-      const [departments, courses, lecturers, students] = await Promise.all([
-        client.get('/admin/departments'),
-        client.get('/admin/courses'),
-        client.get('/admin/lecturers'),
-        client.get('/admin/students'),
-      ])
-      setCounts({
-        departments: departments.data.length,
-        courses: courses.data.length,
-        lecturers: lecturers.data.length,
-        students: students.data.length,
-      })
+      try {
+        const [departments, courses, lecturers, students] = await Promise.all([
+          client.get('/admin/departments'),
+          client.get('/admin/courses'),
+          client.get('/admin/lecturers'),
+          client.get('/admin/students'),
+        ])
+        setCounts({
+          departments: departments.data.length,
+          courses: courses.data.length,
+          lecturers: lecturers.data.length,
+          students: students.data.length,
+        })
+        setError('')
+      } catch (err) {
+        setError(describeError(err, 'Could not load the overview'))
+      }
     }
     load()
   }, [])
@@ -37,6 +44,10 @@ export default function Dashboard() {
         <StatCard label="Lecturers" value={counts.lecturers} icon={GraduationCap} />
         <StatCard label="Students" value={counts.students} icon={Users} />
       </div>
+
+      {error && (
+        <p className="rounded-md bg-signal-absent/10 px-3 py-2 text-sm text-signal-absent">{error}</p>
+      )}
 
       <div className="card p-5">
         <h2 className="text-sm font-semibold text-ink-900">Getting started</h2>

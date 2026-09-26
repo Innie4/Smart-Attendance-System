@@ -7,6 +7,7 @@ import { loadFaceModels, detectFaceWithLandmarks, extractOfflineDescriptor, face
 import { eyeAspectRatio, BlinkDetector } from '../../lib/ear.js'
 import { cacheRoster, getCachedRoster } from '../../lib/rosterCache.js'
 import { queueAttendanceTick } from '../../lib/offlineQueue.js'
+import { describeError } from '../../lib/errors.js'
 
 const RECOGNITION_INTERVAL_MS = 2500
 // ~6s of video at 60fps. The backend replays this window server-side, so it
@@ -33,7 +34,10 @@ export default function LiveAttendance() {
   const [feed, setFeed] = useState([])
 
   useEffect(() => {
-    client.get('/admin/courses').then((res) => setCourses(res.data))
+    client
+      .get('/admin/courses')
+      .then((res) => setCourses(res.data))
+      .catch((err) => pushFeed({ label: 'Could not load courses', detail: describeError(err), variant: 'absent' }))
     loadFaceModels().catch(() => {})
     return () => {
       cancelAnimationFrame(rafRef.current)
@@ -216,7 +220,7 @@ export default function LiveAttendance() {
       </div>
 
       {!session ? (
-        <div className="card max-w-md space-y-4 p-5">
+        <div className="card w-full max-w-md space-y-4 p-5">
           <div>
             <label className="label">Course</label>
             <select className="input" value={courseId} onChange={(e) => setCourseId(e.target.value)}>
@@ -239,7 +243,7 @@ export default function LiveAttendance() {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_360px]">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,360px)]">
           <div className="card overflow-hidden">
             <div className="relative aspect-video bg-ink-950">
               <video ref={videoRef} className="h-full w-full object-cover" muted playsInline />
@@ -253,7 +257,7 @@ export default function LiveAttendance() {
                 )}
               </div>
             </div>
-            <div className="flex items-center justify-between border-t border-ink-100 px-5 py-3">
+            <div className="flex flex-col gap-3 border-t border-ink-100 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-ink-600">
                 Session #{session.id} - {sessionYear}
               </p>

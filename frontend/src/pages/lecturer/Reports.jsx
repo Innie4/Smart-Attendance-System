@@ -5,6 +5,7 @@ import client from '../../api/client.js'
 import DataTable from '../../components/DataTable.jsx'
 import StatusBadge from '../../components/StatusBadge.jsx'
 import StatCard from '../../components/StatCard.jsx'
+import { describeError } from '../../lib/errors.js'
 
 export default function Reports() {
   const [courses, setCourses] = useState([])
@@ -12,19 +13,26 @@ export default function Reports() {
   const [sessionYear, setSessionYear] = useState('2025/2026')
   const [report, setReport] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   useEffect(() => {
-    client.get('/admin/courses').then((res) => setCourses(res.data))
+    client
+      .get('/admin/courses')
+      .then((res) => setCourses(res.data))
+      .catch((err) => setError(describeError(err, 'Could not load courses')))
   }, [])
 
   async function loadReport() {
     if (!courseId) return
     setLoading(true)
+    setError('')
     try {
       const { data } = await client.get(`/reports/courses/${courseId}`, {
         params: { session_year: sessionYear },
       })
       setReport(data)
+    } catch (err) {
+      setError(describeError(err, 'Could not generate the report'))
     } finally {
       setLoading(false)
     }
@@ -53,8 +61,8 @@ export default function Reports() {
         <p className="text-sm text-ink-500">Attendance percentage against the 75% NUC minimum.</p>
       </div>
 
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="w-56">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+        <div className="w-full sm:w-56">
           <label className="label">Course</label>
           <select className="input" value={courseId} onChange={(e) => setCourseId(e.target.value)}>
             <option value="" disabled>
@@ -67,24 +75,30 @@ export default function Reports() {
             ))}
           </select>
         </div>
-        <div className="w-40">
+        <div className="w-full sm:w-40">
           <label className="label">Session year</label>
           <input className="input" value={sessionYear} onChange={(e) => setSessionYear(e.target.value)} />
         </div>
-        <button className="btn-primary" onClick={loadReport} disabled={!courseId || loading}>
-          {loading ? 'Loading...' : 'Generate report'}
-        </button>
-        {report && (
-          <>
-            <button className="btn-secondary" onClick={() => download('csv')}>
-              <Download size={14} /> CSV
-            </button>
-            <button className="btn-secondary" onClick={() => download('pdf')}>
-              <FileText size={14} /> PDF
-            </button>
-          </>
-        )}
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <button className="btn-primary" onClick={loadReport} disabled={!courseId || loading}>
+            {loading ? 'Loading...' : 'Generate report'}
+          </button>
+          {report && (
+            <>
+              <button className="btn-secondary" onClick={() => download('csv')}>
+                <Download size={14} /> CSV
+              </button>
+              <button className="btn-secondary" onClick={() => download('pdf')}>
+                <FileText size={14} /> PDF
+              </button>
+            </>
+          )}
+        </div>
       </div>
+
+      {error && (
+        <p className="rounded-md bg-signal-absent/10 px-3 py-2 text-sm text-signal-absent">{error}</p>
+      )}
 
       {report && (
         <>

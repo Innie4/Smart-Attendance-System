@@ -3,14 +3,28 @@ import { Link } from 'react-router-dom'
 import { ScanFace, Video, FileBarChart } from 'lucide-react'
 import client from '../../api/client.js'
 import StatCard from '../../components/StatCard.jsx'
+import { describeError } from '../../lib/errors.js'
 
 export default function Dashboard() {
   const [courses, setCourses] = useState([])
   const [students, setStudents] = useState([])
+  const [error, setError] = useState('')
 
   useEffect(() => {
-    client.get('/admin/courses').then((res) => setCourses(res.data))
-    client.get('/admin/students').then((res) => setStudents(res.data))
+    async function load() {
+      try {
+        const [coursesRes, studentsRes] = await Promise.all([
+          client.get('/admin/courses'),
+          client.get('/admin/students'),
+        ])
+        setCourses(coursesRes.data)
+        setStudents(studentsRes.data)
+        setError('')
+      } catch (err) {
+        setError(describeError(err, 'Could not load the overview'))
+      }
+    }
+    load()
   }, [])
 
   const enrolledCount = students.filter((s) => s.has_facial_enrolment).length
@@ -27,6 +41,10 @@ export default function Dashboard() {
         <StatCard label="Students facially enrolled" value={`${enrolledCount}/${students.length}`} />
         <StatCard label="NUC threshold" value="75%" hint="Minimum attendance for exam eligibility" />
       </div>
+
+      {error && (
+        <p className="rounded-md bg-signal-absent/10 px-3 py-2 text-sm text-signal-absent">{error}</p>
+      )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Link to="/lecturer/enrolment" className="card p-5 transition-colors hover:border-ink-300">

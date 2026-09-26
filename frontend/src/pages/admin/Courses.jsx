@@ -3,6 +3,7 @@ import { Plus, Trash2 } from 'lucide-react'
 import client from '../../api/client.js'
 import DataTable from '../../components/DataTable.jsx'
 import Modal from '../../components/Modal.jsx'
+import { describeError } from '../../lib/errors.js'
 
 export default function Courses() {
   const [courses, setCourses] = useState([])
@@ -12,12 +13,17 @@ export default function Courses() {
   const [error, setError] = useState('')
 
   async function load() {
-    const [coursesRes, departmentsRes] = await Promise.all([
-      client.get('/admin/courses'),
-      client.get('/admin/departments'),
-    ])
-    setCourses(coursesRes.data)
-    setDepartments(departmentsRes.data)
+    try {
+      const [coursesRes, departmentsRes] = await Promise.all([
+        client.get('/admin/courses'),
+        client.get('/admin/departments'),
+      ])
+      setCourses(coursesRes.data)
+      setDepartments(departmentsRes.data)
+      setError('')
+    } catch (err) {
+      setError(describeError(err, 'Could not load courses'))
+    }
   }
 
   useEffect(() => {
@@ -37,27 +43,35 @@ export default function Courses() {
       setOpen(false)
       load()
     } catch (err) {
-      setError(err.response?.data?.error || 'Could not create course')
+      setError(describeError(err, 'Could not create course'))
     }
   }
 
   async function handleDelete(id) {
     if (!confirm('Delete this course? Enrolments and sessions attached to it will also be removed.')) return
-    await client.delete(`/admin/courses/${id}`)
-    load()
+    try {
+      await client.delete(`/admin/courses/${id}`)
+      load()
+    } catch (err) {
+      setError(describeError(err, 'Could not delete course'))
+    }
   }
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-lg font-semibold text-ink-900">Courses</h1>
           <p className="text-sm text-ink-500">Courses offered per department, with unit load.</p>
         </div>
-        <button className="btn-primary" onClick={() => setOpen(true)}>
+        <button className="btn-primary w-full sm:w-auto" onClick={() => setOpen(true)}>
           <Plus size={16} /> New course
         </button>
       </div>
+
+      {error && !open && (
+        <p className="rounded-md bg-signal-absent/10 px-3 py-2 text-sm text-signal-absent">{error}</p>
+      )}
 
       <DataTable
         columns={[
@@ -143,7 +157,7 @@ export default function Courses() {
               ))}
             </select>
           </div>
-          {error && <p className="text-sm text-signal-absent">{error}</p>}
+          {error && open && <p className="text-sm text-signal-absent">{error}</p>}
         </form>
       </Modal>
     </div>

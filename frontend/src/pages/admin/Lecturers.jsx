@@ -3,6 +3,7 @@ import { Plus, Trash2 } from 'lucide-react'
 import client from '../../api/client.js'
 import DataTable from '../../components/DataTable.jsx'
 import Modal from '../../components/Modal.jsx'
+import { describeError } from '../../lib/errors.js'
 
 const initialForm = {
   full_name: '',
@@ -20,12 +21,17 @@ export default function Lecturers() {
   const [error, setError] = useState('')
 
   async function load() {
-    const [lecturersRes, departmentsRes] = await Promise.all([
-      client.get('/admin/lecturers'),
-      client.get('/admin/departments'),
-    ])
-    setLecturers(lecturersRes.data)
-    setDepartments(departmentsRes.data)
+    try {
+      const [lecturersRes, departmentsRes] = await Promise.all([
+        client.get('/admin/lecturers'),
+        client.get('/admin/departments'),
+      ])
+      setLecturers(lecturersRes.data)
+      setDepartments(departmentsRes.data)
+      setError('')
+    } catch (err) {
+      setError(describeError(err, 'Could not load lecturers'))
+    }
   }
 
   useEffect(() => {
@@ -45,7 +51,7 @@ export default function Lecturers() {
       setOpen(false)
       load()
     } catch (err) {
-      setError(err.response?.data?.error || 'Could not create lecturer account')
+      setError(describeError(err, 'Could not create lecturer account'))
     }
   }
 
@@ -55,18 +61,18 @@ export default function Lecturers() {
       await client.delete(`/admin/lecturers/${id}`)
       load()
     } catch (err) {
-      setError(err.response?.data?.error || 'Could not remove lecturer account')
+      setError(describeError(err, 'Could not remove lecturer account'))
     }
   }
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-lg font-semibold text-ink-900">Lecturers</h1>
           <p className="text-sm text-ink-500">Staff accounts authorised to run live attendance sessions.</p>
         </div>
-        <button className="btn-primary" onClick={() => setOpen(true)}>
+        <button className="btn-primary w-full sm:w-auto" onClick={() => setOpen(true)}>
           <Plus size={16} /> New lecturer
         </button>
       </div>
@@ -165,7 +171,7 @@ export default function Lecturers() {
               ))}
             </select>
           </div>
-          {error && <p className="text-sm text-signal-absent">{error}</p>}
+          {error && open && <p className="text-sm text-signal-absent">{error}</p>}
         </form>
       </Modal>
     </div>

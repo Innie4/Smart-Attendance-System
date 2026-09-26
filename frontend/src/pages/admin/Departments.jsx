@@ -56,12 +56,12 @@ export default function Departments() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-lg font-semibold text-ink-900">Departments</h1>
           <p className="text-sm text-ink-500">Academic departments used to group courses and students.</p>
         </div>
-        <button className="btn-primary" onClick={() => setOpen(true)}>
+        <button className="btn-primary w-full sm:w-auto" onClick={() => setOpen(true)}>
           <Plus size={16} /> New department
         </button>
       </div>

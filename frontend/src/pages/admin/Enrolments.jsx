@@ -3,6 +3,7 @@ import { Plus, Trash2 } from 'lucide-react'
 import client from '../../api/client.js'
 import DataTable from '../../components/DataTable.jsx'
 import Modal from '../../components/Modal.jsx'
+import { describeError } from '../../lib/errors.js'
 
 export default function Enrolments() {
   const [enrolments, setEnrolments] = useState([])
@@ -14,14 +15,19 @@ export default function Enrolments() {
   const [error, setError] = useState('')
 
   async function load(filterCourseId) {
-    const [enrolmentsRes, studentsRes, coursesRes] = await Promise.all([
-      client.get('/admin/enrolments', { params: filterCourseId ? { course_id: filterCourseId } : {} }),
-      client.get('/admin/students'),
-      client.get('/admin/courses'),
-    ])
-    setEnrolments(enrolmentsRes.data)
-    setStudents(studentsRes.data)
-    setCourses(coursesRes.data)
+    try {
+      const [enrolmentsRes, studentsRes, coursesRes] = await Promise.all([
+        client.get('/admin/enrolments', { params: filterCourseId ? { course_id: filterCourseId } : {} }),
+        client.get('/admin/students'),
+        client.get('/admin/courses'),
+      ])
+      setEnrolments(enrolmentsRes.data)
+      setStudents(studentsRes.data)
+      setCourses(coursesRes.data)
+      setError('')
+    } catch (err) {
+      setError(describeError(err, 'Could not load enrolments'))
+    }
   }
 
   useEffect(() => {
@@ -49,28 +55,33 @@ export default function Enrolments() {
       setOpen(false)
       load(courseFilter)
     } catch (err) {
-      setError(err.response?.data?.error || 'Could not create enrolment')
+      setError(describeError(err, 'Could not create enrolment'))
     }
   }
 
   async function handleDelete(id) {
-    await client.delete(`/admin/enrolments/${id}`)
-    load(courseFilter)
+    if (!confirm('Remove this course enrolment?')) return
+    try {
+      await client.delete(`/admin/enrolments/${id}`)
+      load(courseFilter)
+    } catch (err) {
+      setError(describeError(err, 'Could not delete enrolment'))
+    }
   }
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-lg font-semibold text-ink-900">Course enrolments</h1>
           <p className="text-sm text-ink-500">Maps students to the courses they sit attendance for.</p>
         </div>
-        <button className="btn-primary" onClick={() => setOpen(true)}>
+        <button className="btn-primary w-full sm:w-auto" onClick={() => setOpen(true)}>
           <Plus size={16} /> New enrolment
         </button>
       </div>
 
-      <div className="max-w-xs">
+      <div className="w-full sm:max-w-xs">
         <label className="label">Filter by course</label>
         <select
           className="input"
