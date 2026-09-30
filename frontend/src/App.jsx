@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext.jsx'
 import ProtectedRoute from './routes/ProtectedRoute.jsx'
 import Layout from './components/Layout.jsx'
+import { homeRouteFor } from './lib/roles.js'
 
 import Login from './pages/Login.jsx'
 import AdminDashboard from './pages/admin/Dashboard.jsx'
@@ -30,7 +31,7 @@ function RoleRedirect() {
   const { user, checking } = useAuth()
   if (checking) return <PageFallback />
   if (!user) return <Navigate to="/login" replace />
-  return <Navigate to={user.role === 'student' ? '/portal' : '/admin'} replace />
+  return <Navigate to={homeRouteFor(user.role)} replace />
 }
 
 export default function App() {

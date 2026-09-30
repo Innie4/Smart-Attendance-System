@@ -56,14 +56,18 @@ npm run dev        # http://localhost:5173
 npm test           # contract tests for the demo backend (no browser needed)
 ```
 
-Sign in with any of the seeded accounts (one tap on the login screen fills the
-form):
+Sign in with one click — the login page offers a **Lecturer** and a **Student**
+demo account that authenticate immediately, with nothing to type. To use real
+credentials, use the form underneath.
 
-| Role         | Email                        | Password       |
-| ------------ | ---------------------------- | -------------- |
-| Administrator| `admin@smartattendance.ng`   | `Admin@12345`  |
-| Lecturer     | `lecturer@smartattendance.ng`| `Lecturer@12345` |
-| Student      | `student1@smartattendance.ng`| `Student@12345` (also `student2`…`student6`) |
+| Role    | Lands on          | Sees                                                |
+| ------- | ----------------- | --------------------------------------------------- |
+| Lecturer| `/lecturer`       | Facial enrolment, live attendance, compliance reports |
+| Student | `/portal`         | Their own attendance and NUC exam eligibility         |
+
+An administrator account also exists for the manual form
+(`admin@smartattendance.ng` / `Admin@12345`); other students follow the
+`student1`…`student6` pattern with the password `Student@12345`.
 
 Data you create is kept in the browser's localStorage so a refresh doesn't lose
 it. "Reset sample data" on the login screen restores the original seed.
