@@ -10,7 +10,13 @@ export default function Students() {
   const [students, setStudents] = useState([])
   const [departments, setDepartments] = useState([])
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState({ matric_number: '', full_name: '', department_id: '' })
+  const [form, setForm] = useState({
+    matric_number: '',
+    full_name: '',
+    department_id: '',
+    email: '',
+    password: '',
+  })
   const [error, setError] = useState('')
 
   async function load() {
@@ -39,8 +45,14 @@ export default function Students() {
     event.preventDefault()
     setError('')
     try {
-      await client.post('/admin/students', { ...form, department_id: Number(form.department_id) })
-      setForm({ matric_number: '', full_name: '', department_id: '' })
+      await client.post('/admin/students', {
+        ...form,
+        department_id: Number(form.department_id),
+        // Send empty strings as absent so the API treats them as "no account".
+        email: form.email.trim() || undefined,
+        password: form.password || undefined,
+      })
+      setForm({ matric_number: '', full_name: '', department_id: '', email: '', password: '' })
       setOpen(false)
       load()
     } catch (err) {
@@ -94,6 +106,15 @@ export default function Students() {
             render: (row) => (
               <StatusBadge variant={row.has_facial_enrolment ? 'present' : 'warning'}>
                 {row.has_facial_enrolment ? 'Enrolled' : 'Pending'}
+              </StatusBadge>
+            ),
+          },
+          {
+            key: 'portal',
+            label: 'Portal access',
+            render: (row) => (
+              <StatusBadge variant={row.has_portal_account ? 'present' : 'pending'}>
+                {row.has_portal_account ? row.email || 'Active' : 'No login'}
               </StatusBadge>
             ),
           },
@@ -163,6 +184,37 @@ export default function Students() {
               ))}
             </select>
           </div>
+
+          <div className="border-t border-ink-100 pt-4">
+            <label className="label">Portal email (optional)</label>
+            <input
+              className="input"
+              type="email"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              placeholder="student@smartattendance.ng"
+            />
+            <p className="mt-1.5 text-xs text-ink-500">
+              Lets the student sign in and view their own attendance. Leave blank to register the record
+              only.
+            </p>
+          </div>
+
+          {form.email.trim() && (
+            <div>
+              <label className="label">Portal password</label>
+              <input
+                className="input"
+                type="password"
+                required
+                minLength={8}
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                placeholder="At least 8 characters"
+              />
+            </div>
+          )}
+
           {error && open && <p className="text-sm text-signal-absent">{error}</p>}
         </form>
       </Modal>

@@ -6,6 +6,7 @@ import DataTable from '../../components/DataTable.jsx'
 import StatusBadge from '../../components/StatusBadge.jsx'
 import StatCard from '../../components/StatCard.jsx'
 import { describeError } from '../../lib/errors.js'
+import { triggerDownload } from '../../mock/exports.js'
 
 export default function Reports() {
   const [courses, setCourses] = useState([])
@@ -38,18 +39,21 @@ export default function Reports() {
     }
   }
 
-  function download(format) {
-    const url = `${client.defaults.baseURL}/reports/courses/${courseId}/export.${format}?session_year=${encodeURIComponent(
-      sessionYear
-    )}`
-    fetch(url)
-      .then((res) => res.blob())
-      .then((blob) => {
-        const link = document.createElement('a')
-        link.href = window.URL.createObjectURL(blob)
-        link.download = `${report.course.course_code}_${sessionYear}_attendance.${format}`
-        link.click()
-      })
+  async function download(format) {
+    // Requested through the api client so the response goes through the same
+    // transport as everything else (a blob, so the browser saves the file).
+    setError('')
+    try {
+      const res = await client.get(
+        `/reports/courses/${courseId}/export.${format}`,
+        { params: { session_year: sessionYear }, responseType: 'text' }
+      )
+      const mime = format === 'csv' ? 'text/csv' : 'application/pdf'
+      const blob = new Blob([res.data], { type: mime })
+      triggerDownload(blob, `${report.course.course_code}_${sessionYear}_attendance.${format}`)
+    } catch (err) {
+      setError(describeError(err, `Could not download the ${format.toUpperCase()} export`))
+    }
   }
 
   const chartData = report?.students.map((s) => ({ name: s.matric_number, percentage: s.attendance_percentage })) || []

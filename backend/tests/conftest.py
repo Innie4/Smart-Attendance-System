@@ -48,6 +48,13 @@ def seeded(app):
     db.session.add_all([student_one, student_two])
     db.session.flush()
 
+    # Portal account for the first student, used by the student-only tests.
+    student_user = User(email="student@test.local", full_name="Student One", role=User.ROLE_STUDENT)
+    student_user.set_password("Password@1")
+    db.session.add(student_user)
+    db.session.flush()
+    student_one.user_id = student_user.id
+
     db.session.add_all(
         [
             CourseEnrolment(student_id=student_one.id, course_id=course.id, session_year="2025/2026"),
@@ -68,16 +75,28 @@ def seeded(app):
         "admin": admin,
         "lecturer_user": lecturer_user,
         "lecturer": lecturer,
+        "student_user": student_user,
         "course": course,
         "students": [student_one, student_two],
     }
 
 
-@pytest.fixture()
-def admin_headers():
-    return {}
+def login_headers(client, email, password="Password@1"):
+    response = client.post("/api/auth/login", json={"email": email, "password": password})
+    assert response.status_code == 200, response.get_json()
+    return {"Authorization": f"Bearer {response.get_json()['access_token']}"}
 
 
 @pytest.fixture()
-def lecturer_headers():
-    return {}
+def admin_headers(client, seeded):
+    return login_headers(client, "admin@test.local")
+
+
+@pytest.fixture()
+def lecturer_headers(client, seeded):
+    return login_headers(client, "lecturer@test.local")
+
+
+@pytest.fixture()
+def student_headers(client, seeded):
+    return login_headers(client, "student@test.local")

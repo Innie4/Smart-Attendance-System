@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify, current_app
+from flask_jwt_extended import get_jwt_identity
 
 from app.extensions import db
 from app.models import (
@@ -12,6 +13,7 @@ from app.models import (
 )
 from app.services.face_service import FaceRecognitionPipeline, best_match
 from app.services.liveness import BlinkDetector
+from app.utils.rbac import staff_required
 from app.utils.validators import require_fields
 from app.routes.enrolment import _decode_frame
 
@@ -31,12 +33,18 @@ def _get_pipeline():
 
 
 def _current_lecturer(lecturer_id=None):
+    """Resolves the lecturer running a session.
+
+    Staff may pass lecturer_id explicitly; otherwise the first lecturer profile
+    is used so a single-lecturer deployment works without extra setup.
+    """
     if lecturer_id is not None:
         return db.session.get(Lecturer, lecturer_id)
     return Lecturer.query.first()
 
 
 @attendance_bp.post("/sessions")
+@staff_required
 def create_session():
     payload = request.get_json(silent=True) or {}
     missing = require_fields(payload, ["course_id"])
@@ -64,12 +72,14 @@ def create_session():
 
 
 @attendance_bp.get("/sessions/<int:session_id>")
+@staff_required
 def get_session(session_id):
     session = db.get_or_404(AttendanceSession, session_id)
     return jsonify(session.to_dict())
 
 
 @attendance_bp.post("/sessions/<int:session_id>/close")
+@staff_required
 def close_session(session_id):
     session = db.get_or_404(AttendanceSession, session_id)
     session.close()
@@ -78,12 +88,14 @@ def close_session(session_id):
 
 
 @attendance_bp.get("/sessions/<int:session_id>/logs")
+@staff_required
 def get_session_logs(session_id):
     session = db.get_or_404(AttendanceSession, session_id)
     return jsonify([log.to_dict() for log in session.logs])
 
 
 @attendance_bp.get("/sessions/<int:session_id>/roster-cache")
+@staff_required
 def roster_cache(session_id):
     """Returns each enrolled student's offline descriptor so the lecturer's
     device can cache it locally and keep recognising students if the network
@@ -161,6 +173,7 @@ def _passes_liveness(ear_sequence, reported_blink_count=0) -> bool:
 
 
 @attendance_bp.post("/sessions/<int:session_id>/recognize")
+@staff_required
 def recognize(session_id):
     session = db.get_or_404(AttendanceSession, session_id)
     if session.is_locked:

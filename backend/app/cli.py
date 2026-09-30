@@ -22,6 +22,66 @@ def register_cli(app):
         db.create_all()
         click.echo("Database tables created.")
 
+    @app.cli.command("migrate")
+    def migrate():
+        """Additive schema upgrades for databases created before a column was
+        introduced. db.create_all() only creates missing tables, so existing
+        deployments need new columns added explicitly.
+        """
+        from sqlalchemy import inspect, text
+
+        db.create_all()
+        inspector = inspect(db.engine)
+        dialect = db.engine.dialect.name
+        applied = []
+
+        if "students" in inspector.get_table_names():
+            columns = {c["name"] for c in inspector.get_columns("students")}
+            if "user_id" not in columns:
+                if dialect == "postgresql":
+                    db.session.execute(
+                        text(
+                            "ALTER TABLE students ADD COLUMN user_id INTEGER "
+                            "REFERENCES users(id)"
+                        )
+                    )
+                elif dialect == "mysql":
+                    db.session.execute(
+                        text(
+                            "ALTER TABLE students ADD COLUMN user_id INTEGER NULL, "
+                            "ADD CONSTRAINT fk_students_user FOREIGN KEY (user_id) "
+                            "REFERENCES users(id)"
+                        )
+                    )
+                else:
+                    db.session.execute(text("ALTER TABLE students ADD COLUMN user_id INTEGER"))
+                applied.append("students.user_id")
+
+            # The unique index backs the one-account-per-student guarantee.
+            names = {ix["name"] for ix in inspector.get_indexes("students")}
+            if "user_id" in columns or "user_id" not in names:
+                try:
+                    if dialect == "postgresql":
+                        db.session.execute(
+                            text(
+                                "CREATE UNIQUE INDEX IF NOT EXISTS ux_students_user_id "
+                                "ON students (user_id)"
+                            )
+                        )
+                    else:
+                        db.session.execute(
+                            text("CREATE UNIQUE INDEX IF NOT EXISTS ux_students_user_id ON students (user_id)")
+                        )
+                    applied.append("unique index on students.user_id")
+                except Exception as exc:  # pragma: no cover - dialect specific
+                    click.echo(f"  skipped unique index: {exc}")
+
+        db.session.commit()
+        if applied:
+            click.echo("Applied: " + ", ".join(applied))
+        else:
+            click.echo("Schema already up to date.")
+
     @app.cli.command("seed")
     def seed():
         """Populates demo data for every table: departments, courses, users,
@@ -84,6 +144,20 @@ def register_cli(app):
                 db.session.flush()
             if not student.consent_given:
                 student.record_consent()
+            # Portal login so every seeded student can sign in to their own
+            # attendance view. Passwords are shared for demo convenience.
+            if not student.user_id:
+                email = f"student{index}@smartattendance.ng"
+                if not User.query.filter_by(email=email).first():
+                    account = User(
+                        email=email,
+                        full_name=student.full_name,
+                        role=User.ROLE_STUDENT,
+                    )
+                    account.set_password("Student@12345")
+                    db.session.add(account)
+                    db.session.flush()
+                    student.user_id = account.id
             # Distinct deterministic demo vectors per student.
             if not student.facial_enrolment:
                 rng = random.Random(1000 + index)
@@ -147,3 +221,9 @@ def register_cli(app):
         else:
             db.session.commit()
         click.echo("Seed data created.")
+        click.echo("")
+        click.echo("Demo logins (all use the same flow, different role areas):")
+        click.echo("  admin     admin@smartattendance.ng     Admin@12345")
+        click.echo("  lecturer  lecturer@smartattendance.ng  Lecturer@12345")
+        click.echo("  student   student1@smartattendance.ng   Student@12345")
+        click.echo("  (student2..student5 follow the same pattern)")

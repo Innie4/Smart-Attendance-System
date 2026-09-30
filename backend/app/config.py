@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 
 
 def _resolve_model_dir(configured):
@@ -29,6 +30,17 @@ class Config:
         "DATABASE_URL", "sqlite:///" + os.path.join(os.getcwd(), "attendance.db")
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "dev-jwt-secret-change-me-please-32-bytes")
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(
+        minutes=int(os.environ.get("JWT_ACCESS_TOKEN_EXPIRES_MINUTES", 30))
+    )
+    JWT_REFRESH_TOKEN_EXPIRES = timedelta(
+        days=int(os.environ.get("JWT_REFRESH_TOKEN_EXPIRES_DAYS", 7))
+    )
+
+    # Academic session shown on the student self-service portal.
+    STUDENT_PORTAL_SESSION_YEAR = os.environ.get("STUDENT_PORTAL_SESSION_YEAR", "2025/2026")
 
     # Face matching tuned threshold. Distances below this value are accepted
     # as a match; SFace cosine-derived L2 distance in the ~1.0-1.1 band is the

@@ -15,7 +15,7 @@ CREATE TABLE users (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
     email          VARCHAR(180) NOT NULL UNIQUE,
     password_hash  VARCHAR(255) NOT NULL,
-    role           VARCHAR(20)  NOT NULL CHECK (role IN ('admin', 'lecturer')),
+    role           VARCHAR(20)  NOT NULL CHECK (role IN ('admin', 'lecturer', 'student')),
     full_name      VARCHAR(150) NOT NULL,
     is_active      BOOLEAN NOT NULL DEFAULT 1,
     created_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -33,6 +33,9 @@ CREATE TABLE students (
     matric_number   VARCHAR(40) NOT NULL UNIQUE,
     full_name       VARCHAR(150) NOT NULL,
     department_id   INTEGER NOT NULL REFERENCES departments(id),
+    -- Login account for the student self-service portal. One account per
+    -- student, enforced by the unique index below.
+    user_id         INTEGER UNIQUE REFERENCES users(id) ON DELETE CASCADE,
     consent_given   BOOLEAN NOT NULL DEFAULT 0,
     consent_given_at TIMESTAMP,
     created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -88,6 +91,7 @@ CREATE TABLE attendance_logs (
 );
 
 CREATE INDEX idx_students_department ON students(department_id);
+CREATE UNIQUE INDEX ux_students_user_id ON students(user_id);
 CREATE INDEX idx_courses_department ON courses(department_id);
 CREATE INDEX idx_enrolments_course ON course_enrolments(course_id);
 CREATE INDEX idx_sessions_course ON attendance_sessions(course_id);

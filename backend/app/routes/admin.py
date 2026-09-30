@@ -3,18 +3,25 @@ from flask import Blueprint, request, jsonify
 from app.extensions import db
 from app.models import Department, Course, Lecturer, Student, CourseEnrolment, User
 from app.utils.validators import is_valid_email, require_fields
+from app.utils.rbac import admin_required, staff_required
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/api/admin")
 
 
 # ---------------------------------------------------------------- departments
+# List endpoints use staff_required (admins pass too) since lecturers need
+# this reference data for their own dashboards; create/update/delete stay
+# admin-only. Students are refused: they reach their own data through
+# /api/student, which never exposes the whole cohort.
 @admin_bp.get("/departments")
+@staff_required
 def list_departments():
     departments = Department.query.order_by(Department.name).all()
     return jsonify([d.to_dict() for d in departments])
 
 
 @admin_bp.post("/departments")
+@admin_required
 def create_department():
     payload = request.get_json(silent=True) or {}
     missing = require_fields(payload, ["name", "code"])
@@ -31,6 +38,7 @@ def create_department():
 
 
 @admin_bp.put("/departments/<int:department_id>")
+@admin_required
 def update_department(department_id):
     department = db.get_or_404(Department, department_id)
     payload = request.get_json(silent=True) or {}
@@ -43,6 +51,7 @@ def update_department(department_id):
 
 
 @admin_bp.delete("/departments/<int:department_id>")
+@admin_required
 def delete_department(department_id):
     department = db.get_or_404(Department, department_id)
     db.session.delete(department)
@@ -52,12 +61,14 @@ def delete_department(department_id):
 
 # --------------------------------------------------------------------- courses
 @admin_bp.get("/courses")
+@staff_required
 def list_courses():
     courses = Course.query.order_by(Course.course_code).all()
     return jsonify([c.to_dict() for c in courses])
 
 
 @admin_bp.post("/courses")
+@admin_required
 def create_course():
     payload = request.get_json(silent=True) or {}
     missing = require_fields(payload, ["course_code", "title", "department_id"])
@@ -80,6 +91,7 @@ def create_course():
 
 
 @admin_bp.put("/courses/<int:course_id>")
+@admin_required
 def update_course(course_id):
     course = db.get_or_404(Course, course_id)
     payload = request.get_json(silent=True) or {}
@@ -94,6 +106,7 @@ def update_course(course_id):
 
 
 @admin_bp.delete("/courses/<int:course_id>")
+@admin_required
 def delete_course(course_id):
     course = db.get_or_404(Course, course_id)
     db.session.delete(course)
@@ -102,6 +115,7 @@ def delete_course(course_id):
 
 # ------------------------------------------------------------------- lecturers
 @admin_bp.get("/lecturers")
+@staff_required
 
 def list_lecturers():
     lecturers = Lecturer.query.all()
@@ -109,6 +123,7 @@ def list_lecturers():
 
 
 @admin_bp.post("/lecturers")
+@admin_required
 
 def create_lecturer():
     payload = request.get_json(silent=True) or {}
@@ -142,6 +157,7 @@ def create_lecturer():
 
 
 @admin_bp.delete("/lecturers/<int:lecturer_id>")
+@admin_required
 def delete_lecturer(lecturer_id):
     lecturer = db.get_or_404(Lecturer, lecturer_id)
     if lecturer.sessions:
@@ -161,6 +177,7 @@ def delete_lecturer(lecturer_id):
 
 # -------------------------------------------------------------------- students
 @admin_bp.get("/students")
+@staff_required
 def list_students():
     department_id = request.args.get("department_id", type=int)
     query = Student.query
@@ -171,6 +188,7 @@ def list_students():
 
 
 @admin_bp.post("/students")
+@admin_required
 def create_student():
     payload = request.get_json(silent=True) or {}
     missing = require_fields(payload, ["matric_number", "full_name", "department_id"])
@@ -186,12 +204,75 @@ def create_student():
         full_name=payload["full_name"].strip(),
         department_id=payload["department_id"],
     )
+    # Optional portal login created in the same request so the admin does not
+    # have to make a second call after registering the student.
+    account_error = _create_student_account(student, payload)
+    if account_error:
+        db.session.rollback()
+        return jsonify(account_error[0]), account_error[1]
+
     db.session.add(student)
     db.session.commit()
     return jsonify(student.to_dict()), 201
 
 
+def _create_student_account(student: Student, payload: dict):
+    """Creates the student role account when email + password are supplied.
+    Returns an (body, status) tuple on failure, or None on success.
+    """
+    email = str(payload.get("email") or "").lower().strip()
+    password = payload.get("password")
+    if not email and not password:
+        return None
+
+    if not email or not password:
+        return {"error": "Provide both email and password to create a portal account"}, 400
+    if not is_valid_email(email):
+        return {"error": "Invalid email address"}, 400
+    if len(password) < 8:
+        return {"error": "Password must be at least 8 characters"}, 400
+    if User.query.filter_by(email=email).first():
+        return {"error": "Email already registered"}, 409
+
+    user = User(email=email, full_name=student.full_name, role=User.ROLE_STUDENT)
+    user.set_password(password)
+    db.session.add(user)
+    db.session.flush()
+    student.user_id = user.id
+    return None
+
+
+@admin_bp.post("/students/<int:student_id>/account")
+@admin_required
+def create_student_account(student_id):
+    """Issues a portal login for a student that was registered without one."""
+    student = db.get_or_404(Student, student_id)
+    payload = request.get_json(silent=True) or {}
+    if student.user_id:
+        return jsonify({"error": "Student already has a portal account"}), 409
+
+    email = str(payload.get("email") or "").lower().strip()
+    password = payload.get("password")
+    if not email or not password:
+        return jsonify({"error": "Missing fields", "fields": ["email", "password"]}), 400
+    if not is_valid_email(email):
+        return jsonify({"error": "Invalid email address"}), 400
+    if len(password) < 8:
+        return jsonify({"error": "Password must be at least 8 characters"}), 400
+    if User.query.filter_by(email=email).first():
+        return jsonify({"error": "Email already registered"}), 409
+
+    user = User(email=email, full_name=student.full_name, role=User.ROLE_STUDENT)
+    user.set_password(password)
+    db.session.add(user)
+    db.session.flush()
+    student.user_id = user.id
+    db.session.commit()
+    return jsonify(student.to_dict()), 201
+
+
 @admin_bp.put("/students/<int:student_id>")
+@admin_required
 def update_student(student_id):
     student = db.get_or_404(Student, student_id)
     payload = request.get_json(silent=True) or {}
@@ -204,15 +285,22 @@ def update_student(student_id):
 
 
 @admin_bp.delete("/students/<int:student_id>")
+@admin_required
 def delete_student(student_id):
     student = db.get_or_404(Student, student_id)
+    # Drop the linked portal account too, otherwise the login row is orphaned
+    # and its email cannot be reused.
+    account = student.user
     db.session.delete(student)
+    if account:
+        db.session.delete(account)
     db.session.commit()
     return "", 204
 
 
 # ------------------------------------------------------------------ enrolments
 @admin_bp.get("/enrolments")
+@staff_required
 def list_enrolments():
     course_id = request.args.get("course_id", type=int)
     query = CourseEnrolment.query
@@ -223,6 +311,7 @@ def list_enrolments():
 
 
 @admin_bp.post("/enrolments")
+@admin_required
 def create_enrolment():
     payload = request.get_json(silent=True) or {}
     missing = require_fields(payload, ["student_id", "course_id", "session_year"])
@@ -252,6 +341,7 @@ def create_enrolment():
 
 
 @admin_bp.delete("/enrolments/<int:enrolment_id>")
+@admin_required
 def delete_enrolment(enrolment_id):
     enrolment = db.get_or_404(CourseEnrolment, enrolment_id)
     db.session.delete(enrolment)

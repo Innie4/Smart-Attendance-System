@@ -1,8 +1,16 @@
 import { useEffect, useState } from 'react'
-import { Menu, WifiOff, Wifi } from 'lucide-react'
+import { LogOut, Menu, WifiOff, Wifi } from 'lucide-react'
+import { useAuth } from '../context/AuthContext.jsx'
 import { getQueuedCount, flushQueue } from '../lib/offlineQueue.js'
 
-export default function Topbar({ onMenuClick }) {
+const ROLE_LABEL = {
+  admin: 'Administrator',
+  lecturer: 'Lecturer',
+  student: 'Student',
+}
+
+export default function Topbar({ onMenuClick, navOpen = false }) {
+  const { user, logout } = useAuth()
   const [isOnline, setIsOnline] = useState(navigator.onLine)
   const [queuedCount, setQueuedCount] = useState(0)
 
@@ -40,6 +48,8 @@ export default function Topbar({ onMenuClick }) {
           onClick={onMenuClick}
           className="-ml-1.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-ink-600 hover:bg-ink-50 hover:text-ink-900 lg:hidden"
           aria-label="Open navigation"
+          aria-controls="app-navigation"
+          aria-expanded={navOpen}
         >
           <Menu size={20} />
         </button>
@@ -61,9 +71,27 @@ export default function Topbar({ onMenuClick }) {
         )}
       </div>
 
-      <span className="min-w-0 truncate text-sm font-medium text-ink-900">
-        Smart Attendance
-      </span>
+      <div className="flex min-w-0 items-center gap-2">
+        {user && (
+          <div className="hidden min-w-0 text-right sm:block">
+            <p className="truncate text-sm font-medium text-ink-900">{user.full_name}</p>
+            <p className="truncate text-xs capitalize text-ink-400">
+              {ROLE_LABEL[user.role] || user.role}
+            </p>
+          </div>
+        )}
+        {user && (
+          <button
+            type="button"
+            onClick={logout}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-ink-400 hover:bg-ink-50 hover:text-ink-700"
+            title="Sign out"
+            aria-label="Sign out"
+          >
+            <LogOut size={16} />
+          </button>
+        )}
+      </div>
     </header>
   )
 }

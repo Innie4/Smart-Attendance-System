@@ -7,6 +7,7 @@ class User(db.Model):
 
     ROLE_ADMIN = "admin"
     ROLE_LECTURER = "lecturer"
+    ROLE_STUDENT = "student"
 
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(180), unique=True, nullable=False)
@@ -18,6 +19,9 @@ class User(db.Model):
 
     lecturer_profile = db.relationship(
         "Lecturer", back_populates="user", uselist=False, cascade="all, delete-orphan"
+    )
+    student_profile = db.relationship(
+        "Student", back_populates="user", uselist=False, cascade="all, delete-orphan"
     )
 
     def set_password(self, raw_password: str) -> None:

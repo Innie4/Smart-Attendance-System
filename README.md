@@ -45,14 +45,32 @@ pytest
 
 ## Frontend setup
 
+The frontend runs **standalone by default**. It ships with an in-browser demo
+backend (`src/mock/`) so the whole app — every screen, role and report — works
+with no server, no database and no environment variables.
+
 ```bash
 cd frontend
 npm install
-npm run dev
+npm run dev        # http://localhost:5173
+npm test           # contract tests for the demo backend (no browser needed)
 ```
 
-The dev server proxies `/api` to `http://localhost:5000`. Set
-`VITE_API_BASE_URL` in `.env` to point at a different backend.
+Sign in with any of the seeded accounts (one tap on the login screen fills the
+form):
+
+| Role         | Email                        | Password       |
+| ------------ | ---------------------------- | -------------- |
+| Administrator| `admin@smartattendance.ng`   | `Admin@12345`  |
+| Lecturer     | `lecturer@smartattendance.ng`| `Lecturer@12345` |
+| Student      | `student1@smartattendance.ng`| `Student@12345` (also `student2`…`student6`) |
+
+Data you create is kept in the browser's localStorage so a refresh doesn't lose
+it. "Reset sample data" on the login screen restores the original seed.
+
+To point the same UI at the real Flask API instead, set
+`VITE_USE_LIVE_API=1` and `VITE_API_BASE_URL` before building. No component
+changes are needed.
 
 ## Environment variables
 

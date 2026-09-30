@@ -4,12 +4,14 @@ from flask import Blueprint, request, jsonify
 
 from app.extensions import db
 from app.models import AttendanceSession, AttendanceLog, Student
+from app.utils.rbac import staff_required
 from app.utils.validators import require_fields
 
 sync_bp = Blueprint("sync", __name__, url_prefix="/api/sync")
 
 
 @sync_bp.post("/attendance")
+@staff_required
 def sync_attendance_batch():
     """Accepts a batch of attendance ticks captured while the lecturer's
     device was offline. Each record was already matched against the locally
