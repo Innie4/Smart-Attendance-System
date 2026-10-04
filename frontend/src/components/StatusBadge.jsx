@@ -1,14 +1,16 @@
 const VARIANTS = {
-  present: 'bg-signal-present/10 text-signal-present',
-  absent: 'bg-signal-absent/10 text-signal-absent',
-  warning: 'bg-signal-warning/10 text-signal-warning',
-  pending: 'bg-signal-pending/10 text-signal-pending',
+  present: 'border-signal-present/25 bg-signal-present/10 text-signal-present',
+  absent: 'border-signal-absent/25 bg-signal-absent/10 text-signal-absent',
+  warning: 'border-signal-warning/25 bg-signal-warning/10 text-signal-warning',
+  pending: 'border-ink-300/70 bg-ink-100/70 text-ink-500',
 }
 
 export default function StatusBadge({ variant = 'pending', children }) {
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${VARIANTS[variant]}`}
+      className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${
+        VARIANTS[variant] || VARIANTS.pending
+      }`}
     >
       {children}
     </span>

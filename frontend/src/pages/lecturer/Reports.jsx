@@ -3,10 +3,22 @@ import { Download, FileText } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, CartesianGrid } from 'recharts'
 import client from '../../api/client.js'
 import DataTable from '../../components/DataTable.jsx'
+import GlassCard from '../../components/GlassCard.jsx'
+import PageHeader from '../../components/PageHeader.jsx'
 import StatusBadge from '../../components/StatusBadge.jsx'
 import StatCard from '../../components/StatCard.jsx'
 import { describeError } from '../../lib/errors.js'
 import { triggerDownload } from '../../mock/exports.js'
+
+// Recharts and the canvas overlay cannot read CSS classes, so the palette is
+// mirrored here. Keep in step with the tokens in tailwind.config.js.
+const CHART = {
+  grid: '#e6dcd4',
+  bar: '#b56f6a',
+  threshold: '#9c5653',
+  text: '#6f6154',
+  tooltipBg: '#fdf9f6',
+}
 
 export default function Reports() {
   const [courses, setCourses] = useState([])
@@ -59,16 +71,15 @@ export default function Reports() {
   const chartData = report?.students.map((s) => ({ name: s.matric_number, percentage: s.attendance_percentage })) || []
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-lg font-semibold text-ink-900">Compliance reports</h1>
-        <p className="text-sm text-ink-500">Attendance percentage against the 75% NUC minimum.</p>
-      </div>
+    <div className="space-y-8">
+      <PageHeader title="Compliance reports" subtitle="Attendance percentage against the 75% NUC minimum." />
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+      <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end">
         <div className="w-full sm:w-56">
-          <label className="label">Course</label>
-          <select className="input" value={courseId} onChange={(e) => setCourseId(e.target.value)}>
+          <label className="label" htmlFor="report-course">
+            Course
+          </label>
+          <select id="report-course" className="input" value={courseId} onChange={(e) => setCourseId(e.target.value)}>
             <option value="" disabled>
               Select a course
             </option>
@@ -80,8 +91,15 @@ export default function Reports() {
           </select>
         </div>
         <div className="w-full sm:w-40">
-          <label className="label">Session year</label>
-          <input className="input" value={sessionYear} onChange={(e) => setSessionYear(e.target.value)} />
+          <label className="label" htmlFor="report-session-year">
+            Session year
+          </label>
+          <input
+            id="report-session-year"
+            className="input"
+            value={sessionYear}
+            onChange={(e) => setSessionYear(e.target.value)}
+          />
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
           <button className="btn-primary" onClick={loadReport} disabled={!courseId || loading}>
@@ -101,30 +119,50 @@ export default function Reports() {
       </div>
 
       {error && (
-        <p className="rounded-md bg-signal-absent/10 px-3 py-2 text-sm text-signal-absent">{error}</p>
+        <p role="alert" className="rounded-2xl border border-signal-absent/25 bg-signal-absent/10 px-4 py-3 text-sm font-medium text-signal-absent">
+          {error}
+        </p>
       )}
 
       {report && (
         <>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
             <StatCard label="Enrolled students" value={report.students.length} />
             <StatCard label="At-risk students" value={report.at_risk_count} hint="Below 75% attendance" />
             <StatCard label="NUC threshold" value={`${report.nuc_threshold}%`} />
           </div>
 
-          <div className="card p-5">
-            <h3 className="mb-4 text-sm font-semibold text-ink-900">Attendance distribution</h3>
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#eceef1" />
-                <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} angle={-30} textAnchor="end" height={60} />
-                <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} />
-                <Tooltip />
-                <ReferenceLine y={report.nuc_threshold} stroke="#c23b3b" strokeDasharray="4 4" />
-                <Bar dataKey="percentage" fill="#3563e0" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          <GlassCard className="p-7">
+            <h3 className="font-display text-xl font-medium tracking-tight text-ink-900">
+              Attendance distribution
+            </h3>
+            <div className="mt-6">
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} vertical={false} />
+                  <XAxis
+                    dataKey="name"
+                    tick={{ fontSize: 11, fill: CHART.text }}
+                    interval={0}
+                    angle={-30}
+                    textAnchor="end"
+                    height={60}
+                  />
+                  <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: CHART.text }} />
+                  <Tooltip
+                    contentStyle={{
+                      borderRadius: '1rem',
+                      border: `1px solid ${CHART.grid}`,
+                      background: CHART.tooltipBg,
+                      fontSize: '0.8rem',
+                    }}
+                  />
+                  <ReferenceLine y={report.nuc_threshold} stroke={CHART.threshold} strokeDasharray="4 4" />
+                  <Bar dataKey="percentage" fill={CHART.bar} radius={[8, 8, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </GlassCard>
 
           <DataTable
             columns={[

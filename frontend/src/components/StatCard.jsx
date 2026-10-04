@@ -1,18 +1,28 @@
+import GlassCard from './GlassCard.jsx'
+
 export default function StatCard({ label, value, hint, icon: Icon }) {
   return (
-    <div className="card p-5">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-ink-500">{label}</p>
-          <p className="mt-2 text-2xl font-semibold text-ink-900">{value}</p>
-          {hint && <p className="mt-1 text-xs text-ink-400">{hint}</p>}
+    <GlassCard hover className="p-6">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          {/* Reserved for two lines so values sit on a common baseline across a
+              row even when one label wraps and the next does not. */}
+          <p className="min-h-[2.3em] text-[0.68rem] font-bold uppercase leading-snug tracking-[0.16em] text-ink-500">
+            {label}
+          </p>
+          {/* Playfair defaults to oldstyle figures, which read ambiguously for data
+              ("0/6" looks like "o/6"), so lining figures are forced here. */}
+          <p className="mt-2 font-display text-4xl font-medium leading-none tabular-nums lining-nums text-ink-900">
+            {value}
+          </p>
+          {hint && <p className="mt-2 text-xs leading-relaxed text-ink-400">{hint}</p>}
         </div>
         {Icon && (
-          <div className="rounded-md bg-ink-50 p-2 text-ink-500">
+          <div className="shrink-0 rounded-2xl bg-accent-50/80 p-2.5 text-accent-600">
             <Icon size={18} />
           </div>
         )}
       </div>
-    </div>
+    </GlassCard>
   )
 }

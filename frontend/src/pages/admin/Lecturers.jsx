@@ -3,6 +3,7 @@ import { Plus, Trash2 } from 'lucide-react'
 import client from '../../api/client.js'
 import DataTable from '../../components/DataTable.jsx'
 import Modal from '../../components/Modal.jsx'
+import PageHeader from '../../components/PageHeader.jsx'
 import { describeError } from '../../lib/errors.js'
 
 const initialForm = {
@@ -66,18 +67,22 @@ export default function Lecturers() {
   }
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-lg font-semibold text-ink-900">Lecturers</h1>
-          <p className="text-sm text-ink-500">Staff accounts authorised to run live attendance sessions.</p>
-        </div>
-        <button className="btn-primary w-full sm:w-auto" onClick={() => setOpen(true)}>
-          <Plus size={16} /> New lecturer
-        </button>
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        title="Lecturers"
+        subtitle="Staff accounts authorised to run live attendance sessions."
+        actions={
+          <button className="btn-primary w-full sm:w-auto" onClick={() => setOpen(true)}>
+            <Plus size={16} /> New lecturer
+          </button>
+        }
+      />
 
-      {error && !open && <p className="text-sm text-signal-absent">{error}</p>}
+      {error && !open && (
+        <p role="alert" className="rounded-2xl border border-signal-absent/25 bg-signal-absent/10 px-4 py-3 text-sm font-medium text-signal-absent">
+          {error}
+        </p>
+      )}
 
       <DataTable
         columns={[
@@ -89,7 +94,11 @@ export default function Lecturers() {
             key: 'actions',
             label: '',
             render: (row) => (
-              <button onClick={() => handleDelete(row.id)} className="text-ink-400 hover:text-signal-absent">
+              <button
+                onClick={() => handleDelete(row.id)}
+                aria-label={`Remove ${row.full_name}`}
+                className="rounded-xl p-1.5 text-ink-400 transition-colors duration-300 hover:bg-signal-absent/10 hover:text-signal-absent"
+              >
                 <Trash2 size={16} />
               </button>
             ),
@@ -113,10 +122,13 @@ export default function Lecturers() {
           </>
         }
       >
-        <form id="lecturer-form" onSubmit={handleCreate} className="space-y-4">
+        <form id="lecturer-form" onSubmit={handleCreate} className="space-y-5">
           <div>
-            <label className="label">Full name</label>
+            <label className="label" htmlFor="lecturer-name">
+              Full name
+            </label>
             <input
+              id="lecturer-name"
               className="input"
               required
               value={form.full_name}
@@ -124,8 +136,11 @@ export default function Lecturers() {
             />
           </div>
           <div>
-            <label className="label">Email</label>
+            <label className="label" htmlFor="lecturer-email">
+              Email
+            </label>
             <input
+              id="lecturer-email"
               type="email"
               className="input"
               required
@@ -134,8 +149,11 @@ export default function Lecturers() {
             />
           </div>
           <div>
-            <label className="label">Temporary password</label>
+            <label className="label" htmlFor="lecturer-password">
+              Temporary password
+            </label>
             <input
+              id="lecturer-password"
               type="password"
               className="input"
               required
@@ -145,8 +163,11 @@ export default function Lecturers() {
             />
           </div>
           <div>
-            <label className="label">Staff ID</label>
+            <label className="label" htmlFor="lecturer-staff-id">
+              Staff ID
+            </label>
             <input
+              id="lecturer-staff-id"
               className="input"
               required
               value={form.staff_id}
@@ -154,8 +175,11 @@ export default function Lecturers() {
             />
           </div>
           <div>
-            <label className="label">Department</label>
+            <label className="label" htmlFor="lecturer-department">
+              Department
+            </label>
             <select
+              id="lecturer-department"
               className="input"
               required
               value={form.department_id}
@@ -171,7 +195,7 @@ export default function Lecturers() {
               ))}
             </select>
           </div>
-          {error && open && <p className="text-sm text-signal-absent">{error}</p>}
+          {error && open && <p className="text-sm font-medium text-signal-absent">{error}</p>}
         </form>
       </Modal>
     </div>

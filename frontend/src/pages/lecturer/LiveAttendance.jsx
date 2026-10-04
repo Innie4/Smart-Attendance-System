@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Video, Square, WifiOff } from 'lucide-react'
 import client from '../../api/client.js'
+import GlassCard from '../../components/GlassCard.jsx'
+import PageHeader from '../../components/PageHeader.jsx'
 import StatusBadge from '../../components/StatusBadge.jsx'
 import { startCamera, stopCamera, captureFrameAsBase64 } from '../../lib/camera.js'
 import { loadFaceModels, detectFaceWithLandmarks, extractOfflineDescriptor, faceapi, OFFLINE_MATCH_THRESHOLD } from '../../lib/faceApi.js'
@@ -13,6 +15,10 @@ const RECOGNITION_INTERVAL_MS = 2500
 // ~6s of video at 60fps. The backend replays this window server-side, so it
 // needs to be long enough to still contain a blink by the time a scan lands.
 const EAR_WINDOW_SIZE = 360
+
+// The detection box is stroked straight onto a canvas, so it cannot use the
+// Tailwind tokens. Mirrors signal.present / signal.warning from tailwind.config.js.
+const BOX_COLOR = { live: '#4e6b52', waiting: '#86601f' }
 
 export default function LiveAttendance() {
   const videoRef = useRef(null)
@@ -29,7 +35,6 @@ export default function LiveAttendance() {
   const [courseId, setCourseId] = useState('')
   const [sessionYear, setSessionYear] = useState('2025/2026')
   const [session, setSession] = useState(null)
-  const [cameraReady, setCameraReady] = useState(false)
   const [liveStatus, setLiveStatus] = useState('idle')
   const [feed, setFeed] = useState([])
 
@@ -64,7 +69,6 @@ export default function LiveAttendance() {
     }
 
     streamRef.current = await startCamera(videoRef.current)
-    setCameraReady(true)
     blinkDetectorRef.current.reset()
     earBufferRef.current = []
     markedRef.current = new Set()
@@ -79,7 +83,6 @@ export default function LiveAttendance() {
     clearInterval(intervalRef.current)
     cancelAnimationFrame(rafRef.current)
     stopCamera(streamRef.current)
-    setCameraReady(false)
     setSession(null)
     setLiveStatus('idle')
   }
@@ -118,7 +121,7 @@ export default function LiveAttendance() {
     ctx.clearRect(0, 0, canvas.width, canvas.height)
     if (!detection) return
     const { x, y, width, height } = detection.detection.box
-    ctx.strokeStyle = blinkDetectorRef.current.isLive() ? '#1a7f5a' : '#b8791a'
+    ctx.strokeStyle = blinkDetectorRef.current.isLive() ? BOX_COLOR.live : BOX_COLOR.waiting
     ctx.lineWidth = 2
     ctx.strokeRect(x, y, width, height)
   }
@@ -143,7 +146,7 @@ export default function LiveAttendance() {
           handleRecognitionResult(err.response.data)
           return
         }
-        await attemptOfflineRecognition(frame)
+        await attemptOfflineRecognition()
       }
     } finally {
       busyRef.current = false
@@ -172,7 +175,9 @@ export default function LiveAttendance() {
     }
   }
 
-  async function attemptOfflineRecognition(frame) {
+  // Runs against the cached roster; the descriptor is derived straight from the
+  // video element, so the base64 frame sent to the server is not reused here.
+  async function attemptOfflineRecognition() {
     if (!blinkDetectorRef.current.isLive()) return
 
     const descriptor = await extractOfflineDescriptor(videoRef.current).catch(() => null)
@@ -211,19 +216,24 @@ export default function LiveAttendance() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-lg font-semibold text-ink-900">Live attendance</h1>
-        <p className="text-sm text-ink-500">
-          Runs face recognition with blink-based liveness detection against the course roster.
-        </p>
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        title="Live attendance"
+        subtitle="Runs face recognition with blink-based liveness detection against the course roster."
+      />
 
       {!session ? (
-        <div className="card w-full max-w-md space-y-4 p-5">
+        <GlassCard className="w-full max-w-md space-y-5 p-7">
           <div>
-            <label className="label">Course</label>
-            <select className="input" value={courseId} onChange={(e) => setCourseId(e.target.value)}>
+            <label className="label" htmlFor="attendance-course">
+              Course
+            </label>
+            <select
+              id="attendance-course"
+              className="input"
+              value={courseId}
+              onChange={(e) => setCourseId(e.target.value)}
+            >
               <option value="" disabled>
                 Select a course
               </option>
@@ -235,29 +245,36 @@ export default function LiveAttendance() {
             </select>
           </div>
           <div>
-            <label className="label">Session year</label>
-            <input className="input" value={sessionYear} onChange={(e) => setSessionYear(e.target.value)} />
+            <label className="label" htmlFor="attendance-session-year">
+              Session year
+            </label>
+            <input
+              id="attendance-session-year"
+              className="input"
+              value={sessionYear}
+              onChange={(e) => setSessionYear(e.target.value)}
+            />
           </div>
           <button className="btn-primary w-full" disabled={!courseId} onClick={handleOpenSession}>
             <Video size={16} /> Open session
           </button>
-        </div>
+        </GlassCard>
       ) : (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,360px)]">
-          <div className="card overflow-hidden">
-            <div className="relative aspect-video bg-ink-950">
+          <GlassCard className="overflow-hidden">
+            <div className="relative aspect-video bg-ink-900">
               <video ref={videoRef} className="h-full w-full object-cover" muted playsInline />
               <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
-              <div className="absolute bottom-3 left-3 flex flex-wrap items-center gap-2">
+              <div className="absolute bottom-4 left-4 flex flex-wrap items-center gap-2">
                 <StatusIndicator status={liveStatus} />
                 {!navigator.onLine && (
-                  <span className="flex items-center gap-1 rounded-full bg-signal-warning/90 px-2.5 py-1 text-xs font-medium text-white">
+                  <span className="flex items-center gap-1.5 rounded-full bg-signal-warning/90 px-3 py-1.5 text-xs font-semibold text-white">
                     <WifiOff size={12} /> Offline mode
                   </span>
                 )}
               </div>
             </div>
-            <div className="flex flex-col gap-3 border-t border-ink-100 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-3 border-t border-ink-100/70 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-ink-600">
                 Session #{session.id} - {sessionYear}
               </p>
@@ -265,23 +282,26 @@ export default function LiveAttendance() {
                 <Square size={14} /> Close session
               </button>
             </div>
-          </div>
+          </GlassCard>
 
-          <div className="card p-4">
-            <h3 className="mb-3 text-sm font-semibold text-ink-900">Live feed</h3>
-            <div className="space-y-2">
+          <GlassCard className="p-6">
+            <h3 className="font-display text-lg font-medium tracking-tight text-ink-900">Live feed</h3>
+            <div className="mt-4 space-y-2.5">
               {feed.length === 0 && <p className="text-sm text-ink-400">Waiting for the first match...</p>}
               {feed.map((entry, index) => (
-                <div key={index} className="flex items-start justify-between rounded-md border border-ink-100 px-3 py-2">
-                  <div>
-                    <p className="text-sm font-medium text-ink-900">{entry.label}</p>
-                    <p className="text-xs text-ink-500">{entry.detail}</p>
+                <div
+                  key={index}
+                  className="flex items-start justify-between gap-3 rounded-2xl border border-white/70 bg-white/50 px-4 py-3 transition-colors duration-300 hover:bg-white/80"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-ink-900">{entry.label}</p>
+                    <p className="text-xs leading-relaxed text-ink-500">{entry.detail}</p>
                   </div>
-                  <span className="text-xs text-ink-400">{entry.at}</span>
+                  <span className="shrink-0 text-xs tabular-nums text-ink-400">{entry.at}</span>
                 </div>
               ))}
             </div>
-          </div>
+          </GlassCard>
         </div>
       )}
     </div>

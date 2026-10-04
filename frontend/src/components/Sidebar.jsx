@@ -51,7 +51,7 @@ export default function Sidebar({ open, onClose }) {
   // covering the page a student just opened on a phone.
   useEffect(() => {
     onClose()
-  }, [pathname])
+  }, [pathname, onClose])
 
   useEffect(() => {
     const query = window.matchMedia('(min-width: 1024px)')
@@ -87,7 +87,7 @@ export default function Sidebar({ open, onClose }) {
       <div
         onClick={onClose}
         aria-hidden="true"
-        className={`fixed inset-0 z-30 bg-ink-950/50 transition-opacity duration-200 lg:hidden ${
+        className={`fixed inset-0 z-30 bg-ink-900/25 backdrop-blur-md transition-opacity duration-300 ease-spring lg:hidden ${
           open ? 'opacity-100' : 'pointer-events-none opacity-0'
         }`}
       />
@@ -96,22 +96,23 @@ export default function Sidebar({ open, onClose }) {
         aria-label="Main navigation"
         aria-hidden={!isDesktop && !open}
         id="app-navigation"
-        className={`fixed inset-y-0 left-0 z-40 flex w-64 max-w-[85vw] flex-col border-r border-ink-200 bg-white transition-transform duration-200 ease-out lg:static lg:z-auto lg:w-60 lg:max-w-none lg:translate-x-0 ${
-          open ? 'translate-x-0 shadow-xl' : '-translate-x-full'
+        className={`fixed inset-y-0 left-0 z-40 flex w-72 max-w-[85vw] flex-col border-r border-white/60 bg-white/70 backdrop-blur-xl transition-transform duration-500 ease-spring lg:static lg:z-auto lg:w-64 lg:max-w-none lg:translate-x-0 ${
+          open ? 'translate-x-0 shadow-lift' : '-translate-x-full'
         }`}
       >
-        <div className="flex h-14 shrink-0 items-center justify-between border-b border-ink-100 px-5">
-          <span className="text-sm font-semibold tracking-tight text-ink-900">Smart Attendance</span>
+        <div className="flex h-20 shrink-0 items-center justify-between px-6">
+          <span className="font-display text-lg font-medium tracking-tight text-ink-900">Smart Attendance</span>
           <button
             type="button"
             onClick={onClose}
-            className="-mr-1.5 flex h-8 w-8 items-center justify-center rounded-md text-ink-400 hover:bg-ink-50 hover:text-ink-700 lg:hidden"
+            className="-mr-2 flex h-9 w-9 items-center justify-center rounded-2xl text-ink-400 transition-colors duration-300 hover:bg-white/70 hover:text-ink-700 lg:hidden"
             aria-label="Close navigation"
           >
             <X size={18} />
           </button>
         </div>
-        <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
+
+        <nav className="flex-1 space-y-1 overflow-y-auto px-4 pb-6">
           {links.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
@@ -119,13 +120,24 @@ export default function Sidebar({ open, onClose }) {
               end={end}
               onClick={onClose}
               className={({ isActive }) =>
-                `flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                  isActive ? 'bg-ink-900 text-white' : 'text-ink-600 hover:bg-ink-50 hover:text-ink-900'
+                `group flex items-center gap-3 rounded-2xl px-4 py-2.5 text-sm font-semibold transition-all duration-300 ease-spring ${
+                  isActive
+                    ? 'bg-white/85 text-ink-900 shadow-card'
+                    : 'text-ink-500 hover:translate-x-0.5 hover:bg-white/50 hover:text-ink-800'
                 }`
               }
             >
-              <Icon size={16} />
-              {label}
+              {({ isActive }) => (
+                <>
+                  <Icon
+                    size={17}
+                    className={`shrink-0 transition-colors duration-300 ${
+                      isActive ? 'text-accent-600' : 'text-ink-400 group-hover:text-ink-600'
+                    }`}
+                  />
+                  {label}
+                </>
+              )}
             </NavLink>
           ))}
         </nav>

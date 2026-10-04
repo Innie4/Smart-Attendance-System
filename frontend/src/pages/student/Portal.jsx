@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { BookOpen, CalendarCheck, CheckCircle2, TriangleAlert } from 'lucide-react'
 import client from '../../api/client.js'
 import DataTable from '../../components/DataTable.jsx'
+import GlassCard from '../../components/GlassCard.jsx'
+import PageHeader from '../../components/PageHeader.jsx'
 import StatCard from '../../components/StatCard.jsx'
 import StatusBadge from '../../components/StatusBadge.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
@@ -35,43 +37,42 @@ export default function StudentPortal() {
   }, [])
 
   if (loading) {
-    return <p className="text-sm text-ink-400">Loading your attendance...</p>
+    return <p className="py-10 text-sm font-medium text-ink-400">Loading your attendance...</p>
   }
 
   const summary = data?.summary
   const eligible = summary?.is_eligible_for_exams
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-lg font-semibold text-ink-900">My attendance</h1>
-        <p className="text-sm text-ink-500">
-          Session {data?.session_year} - NUC requires at least {data?.nuc_threshold}% to sit exams.
-        </p>
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        title="My attendance"
+        subtitle={`Session ${data?.session_year} - NUC requires at least ${data?.nuc_threshold}% to sit exams.`}
+      />
 
       {error && (
-        <p className="rounded-md bg-signal-absent/10 px-3 py-2 text-sm text-signal-absent">{error}</p>
+        <p role="alert" className="rounded-2xl border border-signal-absent/25 bg-signal-absent/10 px-4 py-3 text-sm font-medium text-signal-absent">
+          {error}
+        </p>
       )}
 
       {summary && (
         <>
-          <div
-            className={`card flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between ${
-              eligible ? 'border-signal-present/40 bg-signal-present/5' : 'border-signal-absent/40 bg-signal-absent/5'
-            }`}
+          <GlassCard
+            tone={eligible ? 'good' : 'alert'}
+            className="flex flex-col gap-4 p-7 sm:flex-row sm:items-center sm:justify-between"
           >
-            <div className="flex items-start gap-3">
+            <div className="flex items-start gap-4">
               {eligible ? (
                 <CheckCircle2 size={22} className="mt-0.5 shrink-0 text-signal-present" />
               ) : (
                 <TriangleAlert size={22} className="mt-0.5 shrink-0 text-signal-absent" />
               )}
               <div>
-                <p className="text-sm font-semibold text-ink-900">
+                <p className="font-display text-xl font-medium tracking-tight text-ink-900">
                   {eligible ? 'Eligible to sit examinations' : 'Not yet eligible to sit examinations'}
                 </p>
-                <p className="mt-0.5 text-sm text-ink-600">
+                <p className="mt-1.5 text-sm leading-relaxed text-ink-600">
                   {summary.courses_graded === 0
                     ? 'No completed sessions have been recorded yet.'
                     : eligible
@@ -82,9 +83,9 @@ export default function StudentPortal() {
                 </p>
               </div>
             </div>
-          </div>
+          </GlassCard>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard label="Courses enrolled" value={summary.courses_enrolled} icon={BookOpen} />
             <StatCard label="Average attendance" value={`${summary.average_percentage}%`} icon={CalendarCheck} />
             <StatCard
@@ -124,7 +125,7 @@ export default function StudentPortal() {
         />
       )}
 
-      <p className="text-xs text-ink-400">
+      <p className="text-xs leading-relaxed text-ink-400">
         Signed in as {user?.full_name}. This view is read-only and shows only your own record.
       </p>
     </div>

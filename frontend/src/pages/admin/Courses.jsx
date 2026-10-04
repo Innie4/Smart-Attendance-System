@@ -3,6 +3,7 @@ import { Plus, Trash2 } from 'lucide-react'
 import client from '../../api/client.js'
 import DataTable from '../../components/DataTable.jsx'
 import Modal from '../../components/Modal.jsx'
+import PageHeader from '../../components/PageHeader.jsx'
 import { describeError } from '../../lib/errors.js'
 
 export default function Courses() {
@@ -58,19 +59,21 @@ export default function Courses() {
   }
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-lg font-semibold text-ink-900">Courses</h1>
-          <p className="text-sm text-ink-500">Courses offered per department, with unit load.</p>
-        </div>
-        <button className="btn-primary w-full sm:w-auto" onClick={() => setOpen(true)}>
-          <Plus size={16} /> New course
-        </button>
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        title="Courses"
+        subtitle="Courses offered per department, with unit load."
+        actions={
+          <button className="btn-primary w-full sm:w-auto" onClick={() => setOpen(true)}>
+            <Plus size={16} /> New course
+          </button>
+        }
+      />
 
       {error && !open && (
-        <p className="rounded-md bg-signal-absent/10 px-3 py-2 text-sm text-signal-absent">{error}</p>
+        <p role="alert" className="rounded-2xl border border-signal-absent/25 bg-signal-absent/10 px-4 py-3 text-sm font-medium text-signal-absent">
+          {error}
+        </p>
       )}
 
       <DataTable
@@ -83,7 +86,11 @@ export default function Courses() {
             key: 'actions',
             label: '',
             render: (row) => (
-              <button onClick={() => handleDelete(row.id)} className="text-ink-400 hover:text-signal-absent">
+              <button
+                onClick={() => handleDelete(row.id)}
+                aria-label={`Delete ${row.course_code}`}
+                className="rounded-xl p-1.5 text-ink-400 transition-colors duration-300 hover:bg-signal-absent/10 hover:text-signal-absent"
+              >
                 <Trash2 size={16} />
               </button>
             ),
@@ -107,10 +114,13 @@ export default function Courses() {
           </>
         }
       >
-        <form id="course-form" onSubmit={handleCreate} className="space-y-4">
+        <form id="course-form" onSubmit={handleCreate} className="space-y-5">
           <div>
-            <label className="label">Course code</label>
+            <label className="label" htmlFor="course-code">
+              Course code
+            </label>
             <input
+              id="course-code"
               className="input"
               required
               value={form.course_code}
@@ -119,8 +129,11 @@ export default function Courses() {
             />
           </div>
           <div>
-            <label className="label">Title</label>
+            <label className="label" htmlFor="course-title">
+              Title
+            </label>
             <input
+              id="course-title"
               className="input"
               required
               value={form.title}
@@ -129,8 +142,11 @@ export default function Courses() {
             />
           </div>
           <div>
-            <label className="label">Unit load</label>
+            <label className="label" htmlFor="course-units">
+              Unit load
+            </label>
             <input
+              id="course-units"
               type="number"
               min="1"
               className="input"
@@ -140,8 +156,11 @@ export default function Courses() {
             />
           </div>
           <div>
-            <label className="label">Department</label>
+            <label className="label" htmlFor="course-department">
+              Department
+            </label>
             <select
+              id="course-department"
               className="input"
               required
               value={form.department_id}
@@ -157,7 +176,7 @@ export default function Courses() {
               ))}
             </select>
           </div>
-          {error && open && <p className="text-sm text-signal-absent">{error}</p>}
+          {error && open && <p className="text-sm font-medium text-signal-absent">{error}</p>}
         </form>
       </Modal>
     </div>

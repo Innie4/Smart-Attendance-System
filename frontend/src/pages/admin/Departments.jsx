@@ -3,6 +3,7 @@ import { Plus, Trash2 } from 'lucide-react'
 import client from '../../api/client.js'
 import DataTable from '../../components/DataTable.jsx'
 import Modal from '../../components/Modal.jsx'
+import PageHeader from '../../components/PageHeader.jsx'
 
 export default function Departments() {
   const [departments, setDepartments] = useState([])
@@ -55,19 +56,21 @@ export default function Departments() {
   }
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-lg font-semibold text-ink-900">Departments</h1>
-          <p className="text-sm text-ink-500">Academic departments used to group courses and students.</p>
-        </div>
-        <button className="btn-primary w-full sm:w-auto" onClick={() => setOpen(true)}>
-          <Plus size={16} /> New department
-        </button>
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        title="Departments"
+        subtitle="Academic departments used to group courses and students."
+        actions={
+          <button className="btn-primary w-full sm:w-auto" onClick={() => setOpen(true)}>
+            <Plus size={16} /> New department
+          </button>
+        }
+      />
 
       {error && !open && (
-        <p className="rounded-md bg-signal-absent/10 px-3 py-2 text-sm text-signal-absent">{error}</p>
+        <p role="alert" className="rounded-2xl border border-signal-absent/25 bg-signal-absent/10 px-4 py-3 text-sm font-medium text-signal-absent">
+          {error}
+        </p>
       )}
 
       <DataTable
@@ -83,7 +86,11 @@ export default function Departments() {
             key: 'actions',
             label: '',
             render: (row) => (
-              <button onClick={() => handleDelete(row.id)} className="text-ink-400 hover:text-signal-absent">
+              <button
+                onClick={() => handleDelete(row.id)}
+                aria-label={`Delete ${row.name}`}
+                className="rounded-xl p-1.5 text-ink-400 transition-colors duration-300 hover:bg-signal-absent/10 hover:text-signal-absent"
+              >
                 <Trash2 size={16} />
               </button>
             ),
@@ -107,10 +114,13 @@ export default function Departments() {
           </>
         }
       >
-        <form id="department-form" onSubmit={handleCreate} className="space-y-4">
+        <form id="department-form" onSubmit={handleCreate} className="space-y-5">
           <div>
-            <label className="label">Department name</label>
+            <label className="label" htmlFor="department-name">
+              Department name
+            </label>
             <input
+              id="department-name"
               className="input"
               required
               value={form.name}
@@ -119,8 +129,11 @@ export default function Departments() {
             />
           </div>
           <div>
-            <label className="label">Code</label>
+            <label className="label" htmlFor="department-code">
+              Code
+            </label>
             <input
+              id="department-code"
               className="input"
               required
               value={form.code}
@@ -128,7 +141,7 @@ export default function Departments() {
               placeholder="CSC"
             />
           </div>
-          {error && open && <p className="text-sm text-signal-absent">{error}</p>}
+          {error && open && <p className="text-sm font-medium text-signal-absent">{error}</p>}
         </form>
       </Modal>
     </div>

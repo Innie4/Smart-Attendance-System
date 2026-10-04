@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Building2, BookOpen, GraduationCap, Users } from 'lucide-react'
 import client from '../../api/client.js'
+import GlassCard from '../../components/GlassCard.jsx'
+import PageHeader from '../../components/PageHeader.jsx'
 import StatCard from '../../components/StatCard.jsx'
 import { describeError } from '../../lib/errors.js'
 
@@ -31,14 +33,11 @@ export default function Dashboard() {
     load()
   }, [])
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-lg font-semibold text-ink-900">Overview</h1>
-        <p className="text-sm text-ink-500">Institution-wide summary of registered records.</p>
-      </div>
+return (
+    <div className="space-y-8">
+      <PageHeader title="Overview" subtitle="Institution-wide summary of registered records." />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Departments" value={counts.departments} icon={Building2} />
         <StatCard label="Courses" value={counts.courses} icon={BookOpen} />
         <StatCard label="Lecturers" value={counts.lecturers} icon={GraduationCap} />
@@ -46,18 +45,29 @@ export default function Dashboard() {
       </div>
 
       {error && (
-        <p className="rounded-md bg-signal-absent/10 px-3 py-2 text-sm text-signal-absent">{error}</p>
+        <p role="alert" className="rounded-2xl border border-signal-absent/25 bg-signal-absent/10 px-4 py-3 text-sm font-medium text-signal-absent">
+          {error}
+        </p>
       )}
 
-      <div className="card p-5">
-        <h2 className="text-sm font-semibold text-ink-900">Getting started</h2>
-        <ol className="mt-3 space-y-2 text-sm text-ink-600">
-          <li>1. Create departments, then courses attached to each department.</li>
-          <li>2. Register lecturer accounts and assign them to a department.</li>
-          <li>3. Add students and enrol them into courses for the current session.</li>
-          <li>4. Lecturers complete facial enrolment before live attendance can recognise a student.</li>
+      <GlassCard className="p-7">
+        <h2 className="font-display text-xl font-medium tracking-tight text-ink-900">Getting started</h2>
+        <ol className="mt-5 space-y-3.5 text-sm leading-relaxed text-ink-600">
+          {[
+            'Create departments, then courses attached to each department.',
+            'Register lecturer accounts and assign them to a department.',
+            'Add students and enrol them into courses for the current session.',
+            'Lecturers complete facial enrolment before live attendance can recognise a student.',
+          ].map((step, index) => (
+            <li key={step} className="flex gap-3.5">
+              <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent-100 text-[0.7rem] font-bold text-accent-700">
+                {index + 1}
+              </span>
+              <span>{step}</span>
+            </li>
+          ))}
         </ol>
-      </div>
+      </GlassCard>
     </div>
   )
 }

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Outlet } from 'react-router-dom'
+import Aurora from './Aurora.jsx'
 import Sidebar from './Sidebar.jsx'
 import Topbar from './Topbar.jsx'
 
@@ -21,12 +22,15 @@ export default function Layout() {
   }, [])
 
   return (
-    <div className="flex h-dvh bg-ink-50">
+    <div className="relative flex h-dvh">
+      <Aurora />
       <Sidebar open={navOpen} onClose={closeNav} />
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <Topbar onMenuClick={toggleNav} navOpen={navOpen} />
-        <main className="flex-1 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6">
-          <Outlet />
+        <main className="flex-1 overflow-y-auto px-4 py-6 sm:px-8 sm:py-9">
+          <div className="mx-auto w-full max-w-6xl">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

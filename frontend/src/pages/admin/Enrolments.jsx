@@ -3,6 +3,7 @@ import { Plus, Trash2 } from 'lucide-react'
 import client from '../../api/client.js'
 import DataTable from '../../components/DataTable.jsx'
 import Modal from '../../components/Modal.jsx'
+import PageHeader from '../../components/PageHeader.jsx'
 import { describeError } from '../../lib/errors.js'
 
 export default function Enrolments() {
@@ -70,20 +71,23 @@ export default function Enrolments() {
   }
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-lg font-semibold text-ink-900">Course enrolments</h1>
-          <p className="text-sm text-ink-500">Maps students to the courses they sit attendance for.</p>
-        </div>
-        <button className="btn-primary w-full sm:w-auto" onClick={() => setOpen(true)}>
-          <Plus size={16} /> New enrolment
-        </button>
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        title="Course enrolments"
+        subtitle="Maps students to the courses they sit attendance for."
+        actions={
+          <button className="btn-primary w-full sm:w-auto" onClick={() => setOpen(true)}>
+            <Plus size={16} /> New enrolment
+          </button>
+        }
+      />
 
       <div className="w-full sm:max-w-xs">
-        <label className="label">Filter by course</label>
+        <label className="label" htmlFor="enrolment-filter">
+          Filter by course
+        </label>
         <select
+          id="enrolment-filter"
           className="input"
           value={courseFilter}
           onChange={(e) => {
@@ -100,6 +104,12 @@ export default function Enrolments() {
         </select>
       </div>
 
+      {error && !open && (
+        <p role="alert" className="rounded-2xl border border-signal-absent/25 bg-signal-absent/10 px-4 py-3 text-sm font-medium text-signal-absent">
+          {error}
+        </p>
+      )}
+
       <DataTable
         columns={[
           { key: 'student', label: 'Student', render: (row) => studentLabel(row.student_id) },
@@ -109,7 +119,11 @@ export default function Enrolments() {
             key: 'actions',
             label: '',
             render: (row) => (
-              <button onClick={() => handleDelete(row.id)} className="text-ink-400 hover:text-signal-absent">
+              <button
+                onClick={() => handleDelete(row.id)}
+                aria-label={`Remove enrolment for ${studentLabel(row.student_id)}`}
+                className="rounded-xl p-1.5 text-ink-400 transition-colors duration-300 hover:bg-signal-absent/10 hover:text-signal-absent"
+              >
                 <Trash2 size={16} />
               </button>
             ),
@@ -133,10 +147,13 @@ export default function Enrolments() {
           </>
         }
       >
-        <form id="enrolment-form" onSubmit={handleCreate} className="space-y-4">
+        <form id="enrolment-form" onSubmit={handleCreate} className="space-y-5">
           <div>
-            <label className="label">Student</label>
+            <label className="label" htmlFor="enrolment-student">
+              Student
+            </label>
             <select
+              id="enrolment-student"
               className="input"
               required
               value={form.student_id}
@@ -153,8 +170,11 @@ export default function Enrolments() {
             </select>
           </div>
           <div>
-            <label className="label">Course</label>
+            <label className="label" htmlFor="enrolment-course">
+              Course
+            </label>
             <select
+              id="enrolment-course"
               className="input"
               required
               value={form.course_id}
@@ -171,8 +191,11 @@ export default function Enrolments() {
             </select>
           </div>
           <div>
-            <label className="label">Session year</label>
+            <label className="label" htmlFor="enrolment-session-year">
+              Session year
+            </label>
             <input
+              id="enrolment-session-year"
               className="input"
               required
               value={form.session_year}
@@ -180,7 +203,7 @@ export default function Enrolments() {
               placeholder="2025/2026"
             />
           </div>
-          {error && <p className="text-sm text-signal-absent">{error}</p>}
+          {error && <p className="text-sm font-medium text-signal-absent">{error}</p>}
         </form>
       </Modal>
     </div>

@@ -3,12 +3,24 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    /* Overshoots slightly past the target, then settles: the "spring" feel. */
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ease-drift: cubic-bezier(0.45, 0, 0.55, 1);
+  }
+
   html {
     -webkit-font-smoothing: antialiased;
   }
 
   body {
-    @apply bg-ink-50 text-ink-900 font-sans;
+    @apply bg-ink-50 font-sans text-ink-800;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply font-display;
   }
 
   ::selection {
@@ -17,49 +29,126 @@
 }
 
 @layer components {
+  /* Frosted glass over the drifting auras. The white fill is kept well above
+     the client's /10 reference value because on a light page base a /10 tint
+     is invisible; this keeps the same effect while holding AA text contrast.
+     Tint and edge are driven by custom properties rather than plain utilities
+     so a `.glass-*` tone modifier always wins, whatever Tailwind's utility
+     sort order happens to be. */
+  .card {
+    --glass-tint: 255 255 255;
+    --glass-tint-alpha: 0.6;
+    --glass-edge: 255 255 255;
+    --glass-edge-alpha: 0.7;
+
+    border-radius: 1.5rem;
+    border: 1px solid rgb(var(--glass-edge) / var(--glass-edge-alpha));
+    background-color: rgb(var(--glass-tint) / var(--glass-tint-alpha));
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.7),
+      0 18px 40px -20px rgba(36, 31, 27, 0.22);
+    -webkit-backdrop-filter: blur(24px) saturate(140%);
+    backdrop-filter: blur(24px) saturate(140%);
+  }
+
+  /* Tinted variants. The fill stays translucent so the aura keeps showing
+     through and the frosted effect survives the colour. Scoped to `.card` so
+     these two-class selectors outrank the bare `.card` defaults above
+     regardless of the order Tailwind emits them in. */
+  .card.glass-warm {
+    --glass-tint: 181 111 106;
+    --glass-tint-alpha: 0.08;
+    --glass-edge: 181 111 106;
+    --glass-edge-alpha: 0.3;
+  }
+
+  .card.glass-good {
+    --glass-tint: 78 107 82;
+    --glass-tint-alpha: 0.08;
+    --glass-edge: 78 107 82;
+    --glass-edge-alpha: 0.3;
+  }
+
+  .card.glass-alert {
+    --glass-tint: 156 86 83;
+    --glass-tint-alpha: 0.08;
+    --glass-edge: 156 86 83;
+    --glass-edge-alpha: 0.3;
+  }
+
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-md px-3.5 py-2 text-sm font-medium transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex select-none items-center justify-center gap-2 rounded-2xl px-5 py-2.5 text-sm font-semibold transition-all duration-300 ease-spring disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .btn-primary {
-    @apply btn bg-ink-900 text-white hover:bg-ink-800;
+    @apply btn bg-ink-800 text-ink-50 shadow-card hover:-translate-y-0.5 hover:bg-ink-700 hover:shadow-lift active:translate-y-0;
   }
 
   .btn-secondary {
-    @apply btn bg-white text-ink-700 border border-ink-200 hover:bg-ink-50;
+    @apply btn border border-haze-deep bg-white/70 text-ink-700 backdrop-blur hover:-translate-y-0.5 hover:bg-white hover:shadow-card active:translate-y-0;
   }
 
   .btn-danger {
-    @apply btn bg-signal-absent text-white hover:opacity-90;
+    @apply btn bg-signal-absent text-white hover:-translate-y-0.5 hover:shadow-lift active:translate-y-0;
   }
 
-  .card {
-    @apply rounded-lg border border-ink-200 bg-white shadow-card;
+  .btn-ghost {
+    @apply btn text-ink-500 hover:bg-white/60 hover:text-ink-800;
   }
 
   /* 16px on phones stops iOS Safari zooming the viewport when a field is
      focused; the desktop size is restored from the sm breakpoint up. */
   .input {
-    @apply w-full rounded-md border border-ink-200 bg-white px-3 py-2 text-base text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-accent-400 focus:border-accent-400 sm:text-sm;
+    @apply w-full rounded-2xl border border-haze-deep bg-white/70 px-4 py-2.5 text-base text-ink-800 backdrop-blur transition-all duration-300 ease-spring placeholder:text-ink-400 focus:border-accent-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-accent-500/15 sm:text-sm;
   }
 
   .label {
-    @apply block text-xs font-medium uppercase tracking-wide text-ink-500 mb-1.5;
+    @apply mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-ink-500;
   }
 
+  /* A single soft divider per row keeps the table airy without turning it into
+     a rigid grid of boxes. */
   .table-shell {
-    @apply w-full text-sm text-left border-collapse;
+    @apply w-full border-collapse text-left text-sm;
   }
 
   .table-shell thead th {
-    @apply border-b border-ink-200 bg-ink-50 px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-ink-500;
+    @apply whitespace-nowrap border-b border-haze-deep/70 px-4 py-3 text-xs font-bold uppercase tracking-[0.12em] text-ink-500;
   }
 
   .table-shell tbody td {
-    @apply border-b border-ink-100 px-4 py-3 text-ink-800;
+    @apply border-b border-ink-100/70 px-4 py-3.5 text-ink-700;
+  }
+
+  .table-shell tbody tr {
+    @apply transition-colors duration-300 ease-drift;
   }
 
   .table-shell tbody tr:hover {
-    @apply bg-ink-50/60;
+    @apply bg-white/50;
+  }
+
+  .table-shell tbody tr:last-child td {
+    @apply border-b-0;
+  }
+}
+
+@layer utilities {
+  /* Staggered entrance for page sections, applied as `animate-rise`. */
+  .page-enter {
+    @apply animate-rise;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The drifting background and every spring transition are decorative, so
+     they collapse to a static, instantly-settled state on request. */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
   }
 }

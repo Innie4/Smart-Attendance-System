@@ -1,6 +1,8 @@
+import GlassCard from './GlassCard.jsx'
+
 export default function DataTable({ columns, rows, emptyLabel = 'No records found' }) {
   return (
-    <div className="card overflow-hidden">
+    <GlassCard className="overflow-hidden">
       {/*
         Tables keep their natural width on small screens and scroll sideways
         inside the card rather than squashing columns into unreadable slivers.
@@ -19,7 +21,7 @@ export default function DataTable({ columns, rows, emptyLabel = 'No records foun
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} className="px-4 py-8 text-center text-ink-400">
+                <td colSpan={columns.length} className="px-4 py-12 text-center text-ink-400">
                   {emptyLabel}
                 </td>
               </tr>
@@ -35,6 +37,6 @@ export default function DataTable({ columns, rows, emptyLabel = 'No records foun
           </tbody>
         </table>
       </div>
-    </div>
+    </GlassCard>
   )
 }

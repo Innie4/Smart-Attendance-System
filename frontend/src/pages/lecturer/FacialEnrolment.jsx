@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { Camera, CheckCircle2, Circle, ShieldCheck } from 'lucide-react'
 import client from '../../api/client.js'
+import GlassCard from '../../components/GlassCard.jsx'
 import Modal from '../../components/Modal.jsx'
+import PageHeader from '../../components/PageHeader.jsx'
 import { startCamera, stopCamera, captureFrameAsBase64 } from '../../lib/camera.js'
 import { loadFaceModels, detectFaceWithLandmarks, extractOfflineDescriptor } from '../../lib/faceApi.js'
 import { describeError } from '../../lib/errors.js'
@@ -12,6 +14,9 @@ const ANGLES = [
   { key: 'right', label: 'Turn slightly to your right' },
   { key: 'up', label: 'Tilt your chin slightly up' },
 ]
+
+// Stroked onto a canvas, so it mirrors accent-500 from tailwind.config.js.
+const BOX_COLOR = '#b56f6a'
 
 export default function FacialEnrolment() {
   const videoRef = useRef(null)
@@ -82,7 +87,7 @@ export default function FacialEnrolment() {
     if (!detection) return
 
     const { x, y, width, height } = detection.detection.box
-    ctx.strokeStyle = '#3563e0'
+    ctx.strokeStyle = BOX_COLOR
     ctx.lineWidth = 2
     ctx.strokeRect(x, y, width, height)
   }
@@ -140,19 +145,24 @@ export default function FacialEnrolment() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-lg font-semibold text-ink-900">Facial enrolment</h1>
-        <p className="text-sm text-ink-500">
-          Registers a numerical face vector for recognition. No photograph is stored, in line with NDPA 2023.
-        </p>
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        title="Facial enrolment"
+        subtitle="Registers a numerical face vector for recognition. No photograph is stored, in line with NDPA 2023."
+      />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,360px)_1fr]">
-        <div className="card space-y-4 p-5">
+        <GlassCard className="space-y-5 p-7">
           <div>
-            <label className="label">Student</label>
-            <select className="input" value={studentId} onChange={(e) => setStudentId(e.target.value)}>
+            <label className="label" htmlFor="enrolment-student-select">
+              Student
+            </label>
+            <select
+              id="enrolment-student-select"
+              className="input"
+              value={studentId}
+              onChange={(e) => setStudentId(e.target.value)}
+            >
               <option value="" disabled>
                 Select a student
               </option>
@@ -169,25 +179,25 @@ export default function FacialEnrolment() {
               <Camera size={16} /> Start camera
             </button>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {ANGLES.map((angle) => (
                 <button
                   key={angle.key}
                   onClick={() => captureAngle(angle.key)}
                   disabled={!faceDetected}
-                  className="flex w-full items-center justify-between rounded-md border border-ink-200 px-3 py-2.5 text-sm text-left hover:bg-ink-50 disabled:opacity-50"
+                  className="flex w-full items-center justify-between rounded-2xl border border-white/70 bg-white/50 px-4 py-3 text-left text-sm font-medium text-ink-700 transition-all duration-300 ease-spring hover:border-accent-300 hover:bg-white/80 disabled:opacity-50"
                 >
                   <span>{angle.label}</span>
                   {frames[angle.key] ? (
-                    <CheckCircle2 size={16} className="text-signal-present" />
+                    <CheckCircle2 size={16} className="shrink-0 text-signal-present" />
                   ) : (
-                    <Circle size={16} className="text-ink-300" />
+                    <Circle size={16} className="shrink-0 text-ink-300" />
                   )}
                 </button>
               ))}
 
               <button
-                className="btn-primary w-full"
+                className="btn-primary mt-2 w-full"
                 disabled={!allCaptured}
                 onClick={() => setConsentOpen(true)}
               >
@@ -197,26 +207,31 @@ export default function FacialEnrolment() {
           )}
 
           {status && (
-            <p className={`text-sm ${status.type === 'success' ? 'text-signal-present' : 'text-signal-absent'}`}>
+            <p
+              role="status"
+              className={`text-sm font-medium ${
+                status.type === 'success' ? 'text-signal-present' : 'text-signal-absent'
+              }`}
+            >
               {status.message}
             </p>
           )}
-        </div>
+        </GlassCard>
 
-        <div className="card overflow-hidden">
-          <div className="relative aspect-video bg-ink-950">
+        <GlassCard className="overflow-hidden">
+          <div className="relative aspect-video bg-ink-900">
             <video ref={videoRef} className="h-full w-full object-cover" muted playsInline />
             <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
             {!cameraReady && (
-              <div className="absolute inset-0 flex items-center justify-center text-sm text-ink-400">
+              <div className="absolute inset-0 flex items-center justify-center text-sm text-ink-300">
                 Camera preview will appear here
               </div>
             )}
             {cameraReady && (
-              <div className="absolute bottom-3 left-3">
+              <div className="absolute bottom-4 left-4">
                 <span
-                  className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                    faceDetected ? 'bg-signal-present/90 text-white' : 'bg-signal-warning/90 text-white'
+                  className={`rounded-full px-3 py-1.5 text-xs font-semibold text-white ${
+                    faceDetected ? 'bg-signal-present/90' : 'bg-signal-warning/90'
                   }`}
                 >
                   {faceDetected ? 'Face detected' : 'No face detected'}
@@ -224,7 +239,7 @@ export default function FacialEnrolment() {
               </div>
             )}
           </div>
-        </div>
+        </GlassCard>
       </div>
 
       <Modal
@@ -242,17 +257,17 @@ export default function FacialEnrolment() {
           </>
         }
       >
-        <p className="text-sm text-ink-600">
+        <p className="text-sm leading-relaxed text-ink-600">
           The captured images are converted into a numerical face vector and then discarded. Only the vector
           is stored, and it is used solely to mark attendance for enrolled courses. The student may request
           erasure of this vector at any time.
         </p>
-        <label className="mt-4 flex items-start gap-2 text-sm text-ink-800">
+        <label className="mt-5 flex items-start gap-3 text-sm leading-relaxed text-ink-700">
           <input
             type="checkbox"
             checked={consentChecked}
             onChange={(e) => setConsentChecked(e.target.checked)}
-            className="mt-0.5"
+            className="mt-1 h-4 w-4 shrink-0 rounded-md accent-accent-600"
           />
           The student has read and accepted this notice and consents to biometric enrolment.
         </label>

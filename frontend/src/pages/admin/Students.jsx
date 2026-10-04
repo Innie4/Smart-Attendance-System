@@ -3,6 +3,7 @@ import { Plus, Trash2 } from 'lucide-react'
 import client from '../../api/client.js'
 import DataTable from '../../components/DataTable.jsx'
 import Modal from '../../components/Modal.jsx'
+import PageHeader from '../../components/PageHeader.jsx'
 import StatusBadge from '../../components/StatusBadge.jsx'
 import { describeError } from '../../lib/errors.js'
 
@@ -71,19 +72,21 @@ export default function Students() {
   }
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-lg font-semibold text-ink-900">Students</h1>
-          <p className="text-sm text-ink-500">Matriculation records used across enrolment and attendance.</p>
-        </div>
-        <button className="btn-primary w-full sm:w-auto" onClick={() => setOpen(true)}>
-          <Plus size={16} /> New student
-        </button>
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        title="Students"
+        subtitle="Matriculation records used across enrolment and attendance."
+        actions={
+          <button className="btn-primary w-full sm:w-auto" onClick={() => setOpen(true)}>
+            <Plus size={16} /> New student
+          </button>
+        }
+      />
 
       {error && !open && (
-        <p className="rounded-md bg-signal-absent/10 px-3 py-2 text-sm text-signal-absent">{error}</p>
+        <p role="alert" className="rounded-2xl border border-signal-absent/25 bg-signal-absent/10 px-4 py-3 text-sm font-medium text-signal-absent">
+          {error}
+        </p>
       )}
 
       <DataTable
@@ -122,7 +125,11 @@ export default function Students() {
             key: 'actions',
             label: '',
             render: (row) => (
-              <button onClick={() => handleDelete(row.id)} className="text-ink-400 hover:text-signal-absent">
+              <button
+                onClick={() => handleDelete(row.id)}
+                aria-label={`Delete ${row.full_name}`}
+                className="rounded-xl p-1.5 text-ink-400 transition-colors duration-300 hover:bg-signal-absent/10 hover:text-signal-absent"
+              >
                 <Trash2 size={16} />
               </button>
             ),
@@ -146,10 +153,13 @@ export default function Students() {
           </>
         }
       >
-        <form id="student-form" onSubmit={handleCreate} className="space-y-4">
+        <form id="student-form" onSubmit={handleCreate} className="space-y-5">
           <div>
-            <label className="label">Matric number</label>
+            <label className="label" htmlFor="student-matric">
+              Matric number
+            </label>
             <input
+              id="student-matric"
               className="input"
               required
               value={form.matric_number}
@@ -158,8 +168,11 @@ export default function Students() {
             />
           </div>
           <div>
-            <label className="label">Full name</label>
+            <label className="label" htmlFor="student-name">
+              Full name
+            </label>
             <input
+              id="student-name"
               className="input"
               required
               value={form.full_name}
@@ -167,8 +180,11 @@ export default function Students() {
             />
           </div>
           <div>
-            <label className="label">Department</label>
+            <label className="label" htmlFor="student-department">
+              Department
+            </label>
             <select
+              id="student-department"
               className="input"
               required
               value={form.department_id}
@@ -185,16 +201,19 @@ export default function Students() {
             </select>
           </div>
 
-          <div className="border-t border-ink-100 pt-4">
-            <label className="label">Portal email (optional)</label>
+          <div className="border-t border-ink-100/70 pt-5">
+            <label className="label" htmlFor="student-email">
+              Portal email (optional)
+            </label>
             <input
+              id="student-email"
               className="input"
               type="email"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
               placeholder="student@smartattendance.ng"
             />
-            <p className="mt-1.5 text-xs text-ink-500">
+            <p className="mt-2 text-xs leading-relaxed text-ink-500">
               Lets the student sign in and view their own attendance. Leave blank to register the record
               only.
             </p>
@@ -202,8 +221,11 @@ export default function Students() {
 
           {form.email.trim() && (
             <div>
-              <label className="label">Portal password</label>
+              <label className="label" htmlFor="student-password">
+                Portal password
+              </label>
               <input
+                id="student-password"
                 className="input"
                 type="password"
                 required
@@ -215,7 +237,7 @@ export default function Students() {
             </div>
           )}
 
-          {error && open && <p className="text-sm text-signal-absent">{error}</p>}
+          {error && open && <p className="text-sm font-medium text-signal-absent">{error}</p>}
         </form>
       </Modal>
     </div>

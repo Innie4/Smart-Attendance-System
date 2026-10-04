@@ -23,7 +23,12 @@ const LiveAttendance = lazy(() => import('./pages/lecturer/LiveAttendance.jsx'))
 const Reports = lazy(() => import('./pages/lecturer/Reports.jsx'))
 
 function PageFallback() {
-  return <div className="p-6 text-sm text-ink-400">Loading...</div>
+  return (
+    <div className="flex items-center gap-3 py-10 text-sm font-medium text-ink-400">
+      <span className="h-2 w-2 animate-breathe rounded-full bg-accent-400" />
+      Loading
+    </div>
+  )
 }
 
 // Sends each role to the area it is allowed to use.

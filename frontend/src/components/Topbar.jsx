@@ -41,12 +41,12 @@ export default function Topbar({ onMenuClick, navOpen = false }) {
   }, [isOnline, queuedCount])
 
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-ink-200 bg-white px-4 sm:px-6">
-      <div className="flex min-w-0 items-center gap-2 text-xs font-medium">
+    <header className="flex h-20 shrink-0 items-center justify-between gap-3 border-b border-white/50 bg-white/40 px-4 backdrop-blur-xl sm:px-8">
+      <div className="flex min-w-0 items-center gap-3 text-xs font-semibold">
         <button
           type="button"
           onClick={onMenuClick}
-          className="-ml-1.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-ink-600 hover:bg-ink-50 hover:text-ink-900 lg:hidden"
+          className="-ml-2 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-ink-600 transition-colors duration-300 hover:bg-white/70 hover:text-ink-900 lg:hidden"
           aria-label="Open navigation"
           aria-controls="app-navigation"
           aria-expanded={navOpen}
@@ -54,28 +54,28 @@ export default function Topbar({ onMenuClick, navOpen = false }) {
           <Menu size={20} />
         </button>
         {isOnline ? (
-          <span className="flex items-center gap-1.5 text-signal-present">
+          <span className="flex items-center gap-1.5 rounded-full bg-signal-present/10 px-3 py-1.5 text-signal-present">
             <Wifi size={14} />
             <span className="hidden sm:inline">Online</span>
           </span>
         ) : (
-          <span className="flex items-center gap-1.5 text-signal-warning">
+          <span className="flex items-center gap-1.5 rounded-full bg-signal-warning/10 px-3 py-1.5 text-signal-warning">
             <WifiOff size={14} />
             <span className="hidden sm:inline">Offline</span>
           </span>
         )}
         {queuedCount > 0 && (
-          <span className="truncate rounded-full bg-signal-warning/10 px-2 py-0.5 text-signal-warning">
+          <span className="truncate rounded-full bg-signal-warning/10 px-3 py-1.5 text-signal-warning">
             {queuedCount} pending sync
           </span>
         )}
       </div>
 
-      <div className="flex min-w-0 items-center gap-2">
+      <div className="flex min-w-0 items-center gap-3">
         {user && (
           <div className="hidden min-w-0 text-right sm:block">
-            <p className="truncate text-sm font-medium text-ink-900">{user.full_name}</p>
-            <p className="truncate text-xs capitalize text-ink-400">
+            <p className="truncate text-sm font-semibold text-ink-900">{user.full_name}</p>
+            <p className="truncate text-xs capitalize tracking-wide text-ink-400">
               {ROLE_LABEL[user.role] || user.role}
             </p>
           </div>
@@ -84,7 +84,7 @@ export default function Topbar({ onMenuClick, navOpen = false }) {
           <button
             type="button"
             onClick={logout}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-ink-400 hover:bg-ink-50 hover:text-ink-700"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-ink-400 transition-all duration-300 ease-spring hover:bg-white/70 hover:text-ink-700"
             title="Sign out"
             aria-label="Sign out"
           >

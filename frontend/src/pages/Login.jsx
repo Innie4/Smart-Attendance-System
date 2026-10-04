@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { GraduationCap, Loader2, LogIn, UserRound } from 'lucide-react'
+import Aurora from '../components/Aurora.jsx'
+import GlassCard from '../components/GlassCard.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { resetDemoData } from '../mock/data.js'
 import { homeRouteFor, isAllowedDestination } from '../lib/roles.js'
@@ -25,6 +27,13 @@ const DEMO_ACCOUNTS = [
     description: 'View your own attendance and exam eligibility',
   },
 ]
+
+// Nudges the second card down on wide screens so the row reads as a loose pair
+// rather than a rigid grid. Applied to the grid cell rather than the card, so
+// both cards keep the same height (a margin would shorten the stretched one).
+// Written out in full because Tailwind can only see class names that appear
+// literally in the source.
+const STAGGER = ['sm:translate-y-0', 'sm:translate-y-2']
 
 export default function Login() {
   const { user, login, loading, error } = useAuth()
@@ -77,100 +86,116 @@ export default function Login() {
   }
 
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center bg-ink-50 px-4 py-10">
-      <div className="w-full max-w-sm space-y-6">
-        <div className="text-center">
-          <h1 className="text-xl font-semibold tracking-tight text-ink-900">Smart Attendance</h1>
-          <p className="mt-1 text-sm text-ink-500">Choose an account to continue</p>
-        </div>
+    <div className="relative flex min-h-dvh flex-col items-center justify-center px-4 py-14">
+      <Aurora />
+
+      <div className="page-enter w-full max-w-xl">
+        <header className="text-center">
+          <h1 className="font-display text-5xl font-medium leading-tight tracking-tight text-ink-900 sm:text-6xl">
+            Smart Attendance
+          </h1>
+          <p className="mx-auto mt-4 max-w-md text-base leading-relaxed text-ink-500">
+            Face recognition for university roll call, with consent-first enrolment and
+            NUC-compliant reporting.
+          </p>
+        </header>
 
         {error && (
-          <p role="alert" className="rounded-md bg-signal-absent/10 px-3 py-2 text-sm text-signal-absent">
+          <p role="alert" className="mt-8 rounded-2xl border border-signal-absent/25 bg-signal-absent/10 px-4 py-3 text-sm font-medium text-signal-absent">
             {error}
           </p>
         )}
 
-        <div className="space-y-3">
-          {DEMO_ACCOUNTS.map((account) => {
+        {/* The second card is nudged down on wide screens so the row reads as a
+            loose pair rather than a rigid grid. */}
+        <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
+          {DEMO_ACCOUNTS.map((account, index) => {
             const isEntering = entering === account.key
             return (
-              <button
-                key={account.key}
-                type="button"
-                onClick={() => enterAs(account)}
-                disabled={busy}
-                className="card flex w-full items-center gap-3 p-4 text-left transition-colors hover:border-accent-400 hover:bg-accent-50/40 disabled:opacity-60 disabled:hover:border-ink-200 disabled:hover:bg-white"
-              >
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-accent-50 text-accent-600">
-                  {isEntering ? (
-                    <Loader2 size={18} className="animate-spin" />
-                  ) : (
-                    <account.icon size={18} />
-                  )}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-semibold text-ink-900">
-                    {isEntering ? `Opening ${account.role.toLowerCase()} account...` : `Continue as ${account.role}`}
+              <div key={account.key} className={STAGGER[index] || ''}>
+                <button
+                  type="button"
+                  onClick={() => enterAs(account)}
+                  disabled={busy}
+                  className="card flex h-full w-full items-center gap-4 p-5 text-left transition-all duration-500 ease-spring hover:-translate-y-1 hover:shadow-lift disabled:opacity-60"
+                >
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[58%_42%_52%_48%/48%_58%_42%_52%] bg-accent-100 text-accent-700">
+                    {isEntering ? (
+                      <Loader2 size={18} className="animate-spin" />
+                    ) : (
+                      <account.icon size={18} />
+                    )}
                   </span>
-                  <span className="mt-0.5 block text-xs text-ink-500">{account.description}</span>
-                </span>
-              </button>
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-display text-lg font-medium leading-tight text-ink-900">
+                      {isEntering
+                        ? `Opening ${account.role.toLowerCase()} account...`
+                        : `Continue as ${account.role}`}
+                    </span>
+                    <span className="mt-1 block text-xs leading-relaxed text-ink-500">
+                      {account.description}
+                    </span>
+                  </span>
+                </button>
+              </div>
             )
           })}
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="my-9 flex items-center gap-4">
           <span className="h-px flex-1 bg-ink-200" />
-          <span className="text-xs font-medium uppercase tracking-wide text-ink-400">or</span>
+          <span className="text-[0.68rem] font-bold uppercase tracking-[0.2em] text-ink-400">or</span>
           <span className="h-px flex-1 bg-ink-200" />
         </div>
 
-        <form onSubmit={handleSubmit} className="card space-y-4 p-5">
-          <div>
-            <label className="label" htmlFor="email">
-              Email
-            </label>
-            <input
-              id="email"
-              className="input"
-              type="email"
-              autoComplete="username"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@smartattendance.ng"
-            />
-          </div>
-          <div>
-            <label className="label" htmlFor="password">
-              Password
-            </label>
-            <input
-              id="password"
-              className="input"
-              type="password"
-              autoComplete="current-password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Your password"
-            />
-          </div>
+        <GlassCard className="space-y-5 p-7">
+          <form id="login-form" onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label className="label" htmlFor="email">
+                Email
+              </label>
+              <input
+                id="email"
+                className="input"
+                type="email"
+                autoComplete="username"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@smartattendance.ng"
+              />
+            </div>
+            <div>
+              <label className="label" htmlFor="password">
+                Password
+              </label>
+              <input
+                id="password"
+                className="input"
+                type="password"
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Your password"
+              />
+            </div>
 
-          <button className="btn-primary w-full" type="submit" disabled={busy}>
-            <LogIn size={16} />
-            {loading ? 'Signing in...' : 'Sign in'}
-          </button>
-        </form>
+            <button className="btn-primary w-full" type="submit" disabled={busy}>
+              <LogIn size={16} />
+              {loading ? 'Signing in...' : 'Sign in'}
+            </button>
+          </form>
+        </GlassCard>
 
-        <div className="text-center">
-          <p className="text-xs text-ink-400">
+        <div className="mt-9 text-center">
+          <p className="text-xs leading-relaxed text-ink-400">
             Runs on built-in sample data, so changes stay in this browser only.
           </p>
           <button
             type="button"
             onClick={handleReset}
-            className="mt-1 text-xs font-medium text-ink-500 underline underline-offset-2 hover:text-ink-800"
+            className="mt-2 text-xs font-semibold text-ink-500 underline underline-offset-4 transition-colors duration-300 hover:text-ink-800"
           >
             Reset sample data
           </button>
